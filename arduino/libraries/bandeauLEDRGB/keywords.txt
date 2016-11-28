@@ -1,0 +1,6 @@
+bandeauLEDRGB	KEYWORD1
+istrue		KEYWORD2
+settrue		KEYWORD2
+ledpwm		KEYWORD2
+ledpwmRGB	KEYWORD2
+Couleur		KEYWORD2
