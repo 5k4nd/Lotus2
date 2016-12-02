@@ -18,6 +18,11 @@ import ast  # for str to dict cast
 from dmx_functions import *
 
 
+
+
+
+
+
 class daemon_sensors(Thread):
     """
         thread de l'arduino des capteurs de distance
@@ -89,7 +94,7 @@ class outputs_arduinos(Thread):
                     mixer.music.load("data/audio/heartbeat_solo_3.mp3")
                     mixer.music.play()
                     sleep(.3)
-                    battement(0, 150, 8)
+                    battement(self.ard_dmx, 0, 150, 8)
                     sleep(.3)
                     mixer.music.stop()
 
@@ -98,7 +103,7 @@ class outputs_arduinos(Thread):
                     mixer.music.load("data/audio/heartbeat_solo_2.mp3")
                     mixer.music.play()
                     sleep(.3)
-                    battement(0, 150, 6)
+                    battement(self.ard_dmx, 0, 150, 6)
                     sleep(.7)
                     mixer.music.stop()
                 elif distance >= 100:
@@ -106,7 +111,7 @@ class outputs_arduinos(Thread):
                     mixer.music.load("data/audio/heartbeat_solo_1.mp3")
                     mixer.music.play()
                     sleep(.3)
-                    battement(0, 150, 3)
+                    battement(self.ard_dmx, 0, 150, 3)
                     sleep(1.2)
                     mixer.music.stop()
 
@@ -126,7 +131,7 @@ if __name__ == '__main__':
     try:
         ard_dmx = serial.Serial('/dev/ttyACM0', 115200)
 
-        arduino_sensors = daemon_sensors('/dev/ttyUSB1', 115200)
+        arduino_sensors = daemon_sensors('/dev/ttyUSB0', 115200)
         arduino_sensors.start()
 
         sleep(1)
@@ -136,12 +141,13 @@ if __name__ == '__main__':
 
 
 
-
     except:
         print 'problème d\'INIT'
         print exc_info()
 
     try:
+        # ard_dmx.write("D255,0,0")
+        sleep(2)
         input()
     except:
         pass
