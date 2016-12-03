@@ -18,9 +18,15 @@
 #define MAX_DISTANCE 200 // Maximum distance (in cm) to ping.
 #define PING_INTERVAL 33 // Milliseconds between sensor pings (29ms is about the min to avoid cross-sensor echo).
 
+#define NB_MOY 3 // Nombre de mesures prises en compte pour le calcul de la moyenne (si NB_MOY = 3, une moyenne des 3 dernières valeurs sera renvoyée toutes les 3 mesures)
+
 unsigned long pingTimer[SONAR_NUM]; // Holds the times when the next ping should happen for each sensor.
 unsigned int cm[SONAR_NUM];         // Where the ping distances are stored.
+unsigned int count[SONAR_NUM];
+unsigned int cm_prec[SONAR_NUM];
+unsigned int cm_somme[SONAR_NUM];
 uint8_t currentSensor = 0;          // Keeps track of which sensor is active.
+unsigned int compt=0;
 
 NewPing sonar[SONAR_NUM] = {     // Sensor object array.
   /*NewPing(41, 42, MAX_DISTANCE), // Each sensor's trigger pin, echo pin, and max distance to ping
@@ -66,16 +72,41 @@ void echoCheck() { // If ping received, set the sensor distance to array.
     cm[currentSensor] = sonar[currentSensor].ping_result / US_ROUNDTRIP_CM;
 }
 
+
+
 void oneSensorCycle() { // Sensor ping cycle complete, do something with the results.
   // The following code would be replaced with your code that does something with the ping results.
-  Serial.print("{");
+  compt ++;
+   if (compt == NB_MOY) Serial.print("{");
   for (uint8_t i = 0; i < SONAR_NUM; i++) {
-    Serial.print("'capt");
-    Serial.print(i+1);
-    Serial.print("':");
-    Serial.print(cm[i]);
-    Serial.print(",");
+
+    if(cm[i]==0){
+      if (count[i] <=10) {
+        count[i] ++;
+        cm[i] = cm_prec[i];
+      }
+    }
+    else count[i] = 0;
+    cm_prec[i] = cm[i];
+
+    if (compt == NB_MOY){
+      cm[i] = (cm[i] + cm_somme[i])/(NB_MOY) ;
+      Serial.print("'capt");
+      Serial.print(i+1);
+      Serial.print("':");
+      Serial.print(cm[i]);
+      Serial.print(",");
+      cm_somme[i] = 0;
+    }
+    else{
+      cm_somme[i] += cm[i];
+    }
+
+
   }
-  Serial.print("}");
-  Serial.println();
+   if (compt == NB_MOY) {
+     Serial.print("}");
+    Serial.println();
+   }
+  if (compt>=NB_MOY) compt = 0;
 }
