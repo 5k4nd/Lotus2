@@ -15,10 +15,43 @@ from pygame import mixer
 from sys import exc_info
 import ast  # for str to dict cast
 
-from dmx_functions import *
+from dmx_functions import DMX
 
 
 
+class Effets():
+    """
+        dans cette classe se trouvent tous les effets.
+        généralement un effet gère ensuite deux types de sous-effets :
+            - les effets lumières via la classe DMX (importée depuis dmx_functions)
+            - les effets de son
+    """
+    def battement_de_coeur(ard_dmx, distance):
+        if distance < 50:
+            print("battement 3")
+            # mixer.music.load("data/audio/heartbeat_solo_3.mp3")
+            # mixer.music.play()
+            sleep(.3)
+            DMX.battement(ard_dmx, 0, 150, 8)
+            sleep(.3)
+            mixer.music.stop()
+
+        elif ((distance >= 50) & (distance < 100)):
+            print("battement 2")
+            # mixer.music.load("data/audio/heartbeat_solo_2.mp3")
+            # mixer.music.play()
+            sleep(.3)
+            DMX.battement(ard_dmx, 0, 150, 6)
+            sleep(.7)
+            mixer.music.stop()
+        elif distance >= 100:
+            print("battement 1")
+            # mixer.music.load("data/audio/heartbeat_solo_1.mp3")
+            # mixer.music.play()
+            sleep(.3)
+            DMX.battement(ard_dmx, 0, 150, 3)
+            sleep(1.2)
+            mixer.music.stop()
 
 
 
@@ -27,9 +60,9 @@ class daemon_sensors(Thread):
     """
         thread de l'arduino des capteurs de distance
     """
-    def __init__(self, port, baud):
+    def __init__(self, ard_sensors):
         Thread.__init__(self)
-        self.arduino = serial.Serial(port=port, baudrate=baud)
+        self.arduino = ard_sensors
         self.data = {
             'capt1': 0,
             'volume': 1
@@ -72,13 +105,13 @@ class outputs_arduinos(Thread):
         self.ard_dmx=ref_ard_dmx
         self.arduino_sensors=arduino_sensors
         try:
-            mixer.init()
+            # mixer.init()
         except:
             print '(AUDIO) sound init error'
             print exc_info()
 
     def run(self):
-        mixer.volume = 1    
+        # mixer.volume = 1    
         while 1:
             sleep(.01)
             try:
@@ -86,37 +119,8 @@ class outputs_arduinos(Thread):
                 # mixer.music.set_volume(self.arduino_sensors.data['volume'])
 
                 distance = int(self.arduino_sensors.data['capt1'])
-                # distance = 30
-                print distance
+                Effets.battement_de_coeur(self.ard_dmx, distance)
 
-                if distance < 50:
-                    print("battement 3")
-                    mixer.music.load("data/audio/heartbeat_solo_3.mp3")
-                    mixer.music.play()
-                    sleep(.3)
-                    battement(self.ard_dmx, 0, 150, 8)
-                    sleep(.3)
-                    mixer.music.stop()
-
-                elif ((distance >= 50) & (distance < 100)):
-                    print("battement 2")
-                    mixer.music.load("data/audio/heartbeat_solo_2.mp3")
-                    mixer.music.play()
-                    sleep(.3)
-                    battement(self.ard_dmx, 0, 150, 6)
-                    sleep(.7)
-                    mixer.music.stop()
-                elif distance >= 100:
-                    print("battement 1")
-                    mixer.music.load("data/audio/heartbeat_solo_1.mp3")
-                    mixer.music.play()
-                    sleep(.3)
-                    battement(self.ard_dmx, 0, 150, 3)
-                    sleep(1.2)
-                    mixer.music.stop()
-
-                # print color
-                # self.ard_dmx.write("D"+str(0)+","+str(int(color))+","+str(0))
 
             except exc_info():
                 print exc_info()
@@ -129,12 +133,21 @@ class outputs_arduinos(Thread):
 
 if __name__ == '__main__':
     try:
-        ard_dmx = serial.Serial('/dev/ttyACM0', 115200)
+        # on ouvre le port d'écoute de l'arduino MEGA
+        # qui écoute les 8 ultrasons + le capteur capacitif
+        ard_sensors = serial.Serial('/dev/ttyACM0', 115200)
 
-        arduino_sensors = daemon_sensors('/dev/ttyUSB0', 115200)
+        # on ouvre le porte d'écoute de l'arduino DMX
+        ard_dmx = serial.Serial('/dev/ttyACM1', 115200)
+
+        # on démarre le thread d'écoute et de data processing de l'arduino MEGA
+        arduino_sensors = daemon_sensors(ard_sensors)
         arduino_sensors.start()
 
+        # on temporise le temps que le thread MEGA démarre
         sleep(1)
+
+        # on démarre le thread qui gère l'arduino UNO DMX
         arduino_senders = outputs_arduinos(ard_dmx, arduino_sensors)
         arduino_senders.start()
 
@@ -146,8 +159,7 @@ if __name__ == '__main__':
         print exc_info()
 
     try:
-        # ard_dmx.write("D255,0,0")
-        sleep(2)
+        print ('APPUYER SUR ENTRÉE POUR QUITTER.')
         input()
     except:
         pass
@@ -155,6 +167,10 @@ if __name__ == '__main__':
 
 
     print('THE END.')
-    arduino_sensors._Thread__stop()
+    # on arrête "proprement" les thread
     arduino_senders._Thread__stop()
+    arduino_sensors._Thread__stop()
+    # on ferme "proprement" les ports d'écoute des serial arduino
+    ard_dmx.close()
+    ard_sensors.close()
     
