@@ -70,22 +70,25 @@ class outputs_arduinos(Thread):
         Thread.__init__(self)
         self.ard_dmx=ref_ard_dmx
         self.arduino_sensors=arduino_sensors
-        try:
+        """try:
             # mixer.init()
         except:
             print '(AUDIO) sound init error'
-            print exc_info()
+            print exc_info()"""
 
     def run(self):
-        # mixer.volume = 1    
+        # mixer.volume = 1
         while 1:
             sleep(.01)
             try:
                 # volume = self.arduino_sensors.data['volume']/200.0
                 # mixer.music.set_volume(self.arduino_sensors.data['volume'])
 
-                distance = int(self.arduino_sensors.data['capt1'])
-                Effets.battement_de_coeur(self.ard_dmx, distance)
+                #distance = int(self.arduino_sensors.data['capt1'])
+                #Effets.battement_de_coeur(self.ard_dmx, distance)
+                effet = Effets()
+
+                effet.sequence(ard_dmx)
 
 
             except exc_info():
@@ -101,7 +104,7 @@ if __name__ == '__main__':
     try:
         # on ouvre le port d'écoute de l'arduino MEGA
         # qui écoute les 8 ultrasons + le capteur capacitif
-        ard_sensors = serial.Serial('/dev/ttyACM0', 115200)
+        ard_sensors = serial.Serial('/dev/ttyUSB0', 9600)
 
         # on ouvre le porte d'écoute de l'arduino DMX
         ard_dmx = serial.Serial('/dev/ttyACM1', 115200)
@@ -139,4 +142,3 @@ if __name__ == '__main__':
     # on ferme "proprement" les ports d'écoute des serial arduino
     ard_dmx.close()
     ard_sensors.close()
-    
