@@ -1,19 +1,17 @@
 #!env/bin/python2
 # -*- coding: utf8 -*-
 
-# import socket
 from threading import Thread
-# from random import randint
 from time import sleep
-import serial  # arduino
+import serial
 import math
 from json import loads
 
 from pygame import mixer
 
-# import sys
+
 from sys import exc_info
-import ast  # for str to dict cast
+import ast  # for str-to-dict cast
 
 from dmx_functions import DMX
 from effets import Effets
@@ -85,10 +83,10 @@ class outputs_arduinos(Thread):
                 # mixer.music.set_volume(self.arduino_sensors.data['volume'])
 
                 #distance = int(self.arduino_sensors.data['capt1'])
-                #Effets.battement_de_coeur(self.ard_dmx, distance)
-                effet = Effets()
+                #Effets.battement_de_coeur(self.ard_dmx)
+                effet = Effets(ard_dmx, ard_sensors)
 
-                effet.sequence(ard_dmx)
+                effet.sequence()
 
 
             except exc_info():
@@ -97,17 +95,17 @@ class outputs_arduinos(Thread):
 
 
 
-
-
-
 if __name__ == '__main__':
     try:
         # on ouvre le port d'écoute de l'arduino MEGA
         # qui écoute les 8 ultrasons + le capteur capacitif
-        ard_sensors = serial.Serial('/dev/ttyUSB0', 9600)
+
+        ard_sensors = 22#serial.Serial('/dev/ttyACM0', 115200)
+        ard_sensors = "coucou"
 
         # on ouvre le porte d'écoute de l'arduino DMX
-        ard_dmx = serial.Serial('/dev/ttyACM1', 115200)
+        ard_dmx = 21# serial.Serial('/dev/ttyACM1', 115200)
+        ard_dmx = "coucou"
 
         # on démarre le thread d'écoute et de data processing de l'arduino MEGA
         arduino_sensors = daemon_sensors(ard_sensors)
