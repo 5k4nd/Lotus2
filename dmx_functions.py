@@ -6,8 +6,10 @@ from gevent.pool import Group
 from gevent.event import AsyncResult
 from time import sleep
 from math import *
+
 trame = [0]*5
-# DMX functions
+
+
 class DMX():
 
     #battement linéaire (limité en fréquence à 0.1s environ)

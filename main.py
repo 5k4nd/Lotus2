@@ -75,23 +75,25 @@ class outputs_arduinos(Thread):
             print exc_info()"""
 
     def run(self):
-        # mixer.volume = 1
         while 1:
             sleep(.01)
+            effet = Effets(ard_dmx, ard_sensors)
+            
             try:
-                # volume = self.arduino_sensors.data['volume']/200.0
-                # mixer.music.set_volume(self.arduino_sensors.data['volume'])
-
                 #distance = int(self.arduino_sensors.data['capt1'])
-                #Effets.battement_de_coeur(self.ard_dmx)
-                effet = Effets(ard_dmx, ard_sensors)
-
-                effet.sequence()
+                effet.battement_de_coeur()
+                # effet.sequence()
 
 
             except exc_info():
                 print exc_info()
                 pass
+
+        # ne pas toucher, c'est pour VLC !
+        event_manager = player.event_manager()
+        event_manager.event_attach(EventType.MediaPlayerEndReached,      end_callback)
+        event_manager.event_attach(EventType.MediaPlayerPositionChanged, pos_callback, player)
+
 
 
 
@@ -100,11 +102,11 @@ if __name__ == '__main__':
         # on ouvre le port d'écoute de l'arduino MEGA
         # qui écoute les 8 ultrasons + le capteur capacitif
 
-        ard_sensors = 22#serial.Serial('/dev/ttyACM0', 115200)
+        # ard_sensors = serial.Serial('/dev/ttyACM0', 115200)
         ard_sensors = "coucou"
 
         # on ouvre le porte d'écoute de l'arduino DMX
-        ard_dmx = 21# serial.Serial('/dev/ttyACM1', 115200)
+        # ard_dmx = serial.Serial('/dev/ttyACM1', 115200)
         ard_dmx = "coucou"
 
         # on démarre le thread d'écoute et de data processing de l'arduino MEGA

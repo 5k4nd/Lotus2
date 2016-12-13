@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from dmx_functions import DMX
+from audio_functions import *
 import gevent
 #from gevent import getcurrent
 from gevent.pool import Group
@@ -30,30 +31,22 @@ class Effets():
             g4.kill()
 
     def battement_de_coeur(self):
-        distance = self.ard_sensors.data['capt1']  # remplacer par un truc pertinent !
+        # distance = self.ard_sensors.data['capt1']  # remplacer par un truc pertinent !
+        distance = 220  # pour les tests
         if distance < 50:
-            print("battement 3")
-            # mixer.music.load("data/audio/heartbeat_solo_3.mp3")
-            # mixer.music.play()
-            sleep(.3)
-            DMX.battement(self.ard_dmx, 0, 150, 8)
-            sleep(.3)
-            # mixer.music.stop()
+            print("battement 1")
+            # DMX.battement(self.ard_dmx, 0, 150, 8)
+            audio_battement(level=1)
 
         elif ((distance >= 50) & (distance < 100)):
             print("battement 2")
-            # mixer.music.load("data/audio/heartbeat_solo_2.mp3")
-            # mixer.music.play()
-            sleep(.3)
-            DMX.battement(self.ard_dmx, 0, 150, 6)
-            SON.battement()
-            sleep(.7)
-            # mixer.music.stop()
-        elif distance >= 100:
-            print("battement 1")
-            # mixer.music.load("data/audio/heartbeat_solo_1.mp3")
-            # mixer.music.play()
-            sleep(.3)
+            # DMX.battement(self.ard_dmx, 0, 150, 6)
+            audio_battement(level=2)
+        elif ((distance >= 100) & (distance < 200)):
+            print("battement 3")
+            audio_battement(level=3)
             DMX.battement(self.ard_dmx, 0, 150, 3)
-            sleep(1.2)
-            # mixer.music.stop()
+        elif distance >= 200:
+            print("battement 7")
+            audio_battement(level=3)
+            # DMX.battement(self.ard_dmx, 0, 150, 3)
