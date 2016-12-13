@@ -1,8 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
 oui ce fichier est crade mais ça marche, et normalement vous devriez pas avoir
-à mettre les mains dedans donc la flem de clener :-)
+à mettre les mains dedans donc la flem de cleaner :-)
 """
 
 from vlc import *
