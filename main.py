@@ -16,6 +16,7 @@ import ast  # for str-to-dict cast
 from dmx_functions import DMX
 from effets import Effets
 
+import time
 
 
 
@@ -78,11 +79,14 @@ class outputs_arduinos(Thread):
         while 1:
             sleep(.01)
             effet = Effets(ard_dmx, ard_sensors)
-            
+
             try:
                 #distance = int(self.arduino_sensors.data['capt1'])
-                effet.battement_de_coeur()
-                # effet.sequence()
+                #tp1 = time.time()
+                effet.sequence()
+                #tp2 = time.time()
+
+                #print(tp2 - tp1)
 
 
             except exc_info():
@@ -102,12 +106,12 @@ if __name__ == '__main__':
         # on ouvre le port d'écoute de l'arduino MEGA
         # qui écoute les 8 ultrasons + le capteur capacitif
 
-        # ard_sensors = serial.Serial('/dev/ttyACM0', 115200)
-        ard_sensors = "coucou"
+        ard_sensors = serial.Serial('/dev/ttyUSB0', 115200)
+        #ard_sensors = "coucou"
 
         # on ouvre le porte d'écoute de l'arduino DMX
-        # ard_dmx = serial.Serial('/dev/ttyACM1', 115200)
-        ard_dmx = "coucou"
+        ard_dmx = serial.Serial('/dev/ttyACM0', 115200)
+        #ard_dmx = "coucou"
 
         # on démarre le thread d'écoute et de data processing de l'arduino MEGA
         arduino_sensors = daemon_sensors(ard_sensors)
