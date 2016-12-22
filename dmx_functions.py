@@ -7,7 +7,7 @@ from gevent.event import AsyncResult
 from time import sleep
 from math import *
 
-trame = [0]*20
+trame = [0]*25
 
 
 class DMX():
