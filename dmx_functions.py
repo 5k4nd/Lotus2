@@ -92,17 +92,48 @@ class DMX():
             ard_dmx.write(trame_envoi)
             gevent.sleep(pause)
 
-    def battement(ard_dmx, BEGIN, END, PAS=1):
-        for i in range(BEGIN, END, PAS):
-            sleep(.008)
-            ard_dmx.write("D"+str(i)+",0,0")
-            # print i
-        for i in range(END-1, BEGIN-1, -1*PAS):
-            sleep(.008)
-            if i < PAS:
-                break  # sécurité quand le pas ne permet pas d'arriver sur un beau 0
-            ard_dmx.write("D"+str(i)+",0,0")
-            # print i
-        print ("ok")
-        ard_dmx.write("D"+str(BEGIN)+",0,0")
-        ard_dmx.write("D"+str(BEGIN)+",0,0")
+    def battement_de_coeur(self):
+        """
+        battement de coeur en fonction de la distance, comprise sur [1, 239].
+        on divise par 210 pour obtenir un pas de 30cm, soit 7 niveaux en tout.
+        
+        La fonction appelle respectivement les fonctions de lumières (DMX) et de son (VLC)
+
+        """
+        dmx = DMX()
+        distance = self.ard_sensors.data['capt1']  # remplacer par un truc pertinent !
+        # distance = 9  # pour les tests
+
+        # si jamais on a plus de 239 cm on gère pas, donc on ramène à du connu
+        if distance > 239:
+            distance = 239
+        level = int(distance/30) + 1
+
+        # son
+        print("battement %s" % level)
+        audio_battement(level=level)
+
+        # lumière
+        g1 = gevent.spawn(dmx.battement, canal=2, duree=.8, val_dep=0, val_fin=255)
+        g4 = gevent.spawn(dmx.send_serial, self.ard_dmx, 0.03)
+        gevent.joinall([g1])
+        g4.kill()
+
+        # gestion des palliers
+        if level==1:
+            sleep(.2)
+        elif level==2:
+            sleep(.3)
+        elif level==3:
+            sleep(.4)
+        elif level==4:
+            sleep(.5)
+        elif level==5:
+            sleep(.7)
+        elif level==6:
+            sleep(.9)
+        elif level==7:
+            sleep(1.1)
+        elif level==8:
+            sleep(1.3)
+
