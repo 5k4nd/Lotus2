@@ -6,32 +6,41 @@ from gevent.pool import Group
 from gevent.event import AsyncResult
 from time import sleep
 from math import *
-
+interrup = [0]*25
 trame = [0]*25
-
+trame1 = [0]*25
+for i in range(1,len(trame)):
+    trame[i] = [0]*2
 
 class DMX():
 
     #battement linéaire (limité en fréquence à 0.1s environ)
     def zero(self):
         for i in range(1,len(trame)):
-            trame[i] = 0
+            trame[i][0] = 0
 
-    def fade_up_down(self, canal, duree, val_dep, val_fin, pas):
+    def fade_up_down(self, canal, duree, val_dep, val_fin, pas, t = 0):
         global trame
         pause = (float(duree)/abs(val_dep-val_fin))*float((pas/2))
         if val_dep > val_fin :
             valeurs = range(val_dep,val_fin, -pas)
         else : valeurs = range(val_dep, val_fin, pas)
         for i in valeurs:
-            trame[canal] =  i
+            trame[canal][t] =  i
             gevent.sleep(pause)
         for i in reversed(valeurs):
-            trame[canal] =  i
+            trame[canal][t] =  i
             gevent.sleep(pause)
 
-    def fade(self, canal, duree, val_dep, val_fin, pas):
-        global trame
+    def interruption(self, canaux, val):
+        global interrup
+        for i in canaux:
+            interrup[i] = val
+
+
+
+    def fade(self, canal, duree, val_dep, val_fin, pas, t=0):
+        global trame, interrup
         pause = (float(duree)/abs(val_dep-val_fin))*pas
         if val_dep > val_fin :
             valeurs = range(val_dep,val_fin, -pas)
@@ -39,7 +48,7 @@ class DMX():
         for i in valeurs:
             if i<=pas :
                 i=0
-            trame[canal] =  i
+            trame[canal][t] =  i
             gevent.sleep(pause)
 
 
@@ -67,12 +76,19 @@ class DMX():
 
     #fonction appelée régulièrement pour créer et envoyer une nouvelle trame dmx via le port série
     def send_serial(self, ard_dmx, pause):
+        global trame, interrup, trame1
         while 1:
-            global trame
+
             nb_canaux = len(trame)
             trame_envoi = ""
             for i in range(1, nb_canaux):
-                trame_envoi = trame_envoi + str(i) + "c" + str(trame[i]) + "w"
+                if interrup[i] == 1:
+                    e = trame[i][1]
+                elif interrup[i] == 2 :
+                    e = max(trame[i][0], trame[i][1])
+                else :
+                    e = trame[i][0]
+                trame_envoi = trame_envoi + str(i) + "c" + str(e) + "w"
             ard_dmx.write(trame_envoi)
             gevent.sleep(pause)
 

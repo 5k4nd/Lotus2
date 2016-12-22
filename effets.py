@@ -31,6 +31,10 @@ class Effets():
         G.extend( dmx.multi(0, dmx.fade_up_down, [12, 17], 0.8, 0, 255, 8))
         G.extend( dmx.multi(0, dmx.fade_up_down, [14, 19], 0.8, 0, 255, 8)) #fade up down rose
         G.extend( dmx.multi_boucle(1.2, 19, dmx.fade_up_down, [2,3,4,7,8,9], 0.2, 0, 255, 8)) #fade up 0.2s phase 1
+        g = gevent.spawn_later(1.5, dmx.interruption,[2,3,4], 2)
+        G.extend( dmx.multi(1.6, dmx.fade, [2], 0.2, 0, 255, 6, 1) )
+        g = gevent.spawn_later(4, dmx.interruption,[2,3,4], 0)
+        #G.extend(gevent.spawn_later(2, dmx.interruption, [2,3,4], 0))
         G.extend( dmx.multi_boucle(3.1, 17, dmx.fade_up_down, [12,13,14,17,18,19], 0.2, 0, 255, 8)) #fade up 0.2s phase 2
         G.extend( dmx.multi(5, dmx.fade, [2,3,4,7,8,9], 3, 255, 0, 2)) #fade down
         G.extend( dmx.multi(6.5, dmx.fade, [12,13,14,17,18,19], 1.5, 255, 0, 2)) #fade down
