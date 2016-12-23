@@ -62,6 +62,13 @@ class DMX():
         g = gevent.spawn_later(delai + duree, dmx.interruption,canaux, 0)
         return G
 
+    def inter_fade(self, delai,duree,freq, canaux1, canaux):
+        dmx = DMX()
+        g = gevent.spawn_later(delai, dmx.interruption,canaux, 1)
+        G = dmx.multi(delai, dmx.fade_up_down_kill, canaux1, freq, 0, 255, 6, duree-0.05,1)
+        g = gevent.spawn_later(delai + duree, dmx.interruption,canaux, 0)
+        return G
+
     def fade(self, canal, duree, val_dep, val_fin, pas, t=0):
         global trame, interrup
         pause = (float(duree)/abs(val_dep-val_fin))*pas
@@ -72,6 +79,19 @@ class DMX():
             if i<=pas :
                 i=0
             trame[canal][t] =  i
+            gevent.sleep(pause)
+
+    def strobe(self, canaux, duree, val_bas, val_haut,freq, t=0):
+        global trame
+        pause = 1/float(freq)
+        tic = time.time()
+        while 1:
+            for i in canaux:
+                trame[i][t] = val_haut
+            gevent.sleep(pause)
+            for i in canaux:
+                trame[i][t] = val_bas
+            if (time.time() - tic > duree) : return 0
             gevent.sleep(pause)
 
 
@@ -96,11 +116,24 @@ class DMX():
         G = []
         dmx = DMX()
         for i in range(1, nombre):
-            G.extend( dmx.multi(delai, dmx.fade_up_down, [2,4], 0.5, 20, 255, 4))
-            G.extend( dmx.multi(delai+intervalle, dmx.fade_up_down, [7,9], 0.5, 20, 255, 4))
-            G.extend( dmx.multi(delai+intervalle*2, dmx.fade_up_down, [12,14], 0.5, 20, 255, 4))
-            G.extend( dmx.multi(delai+intervalle*3, dmx.fade_up_down, [17,19], 0.5, 20, 255, 4))
+            G.extend( dmx.multi(delai, dmx.fade_up_down, [2,4], 1, 20, 255, 4))
+            G.extend( dmx.multi(delai+intervalle, dmx.fade_up_down, [7,9], 1, 20, 255, 4))
+            G.extend( dmx.multi(delai+intervalle*2, dmx.fade_up_down, [12,14], 1, 20, 255, 4))
+            G.extend( dmx.multi(delai+intervalle*3, dmx.fade_up_down, [17,19], 1, 20, 255, 4))
             delai = delai + intervalle*4
+        return G
+
+    def effet_grad(self, delai, duree, int_dep, int_fin):
+        G = []
+        dmx = DMX()
+        d = delai
+        intervalle = int_dep
+        dec = (int_dep - int_fin)/20
+        while delai-d < duree:
+            G.extend( dmx.multi(delai,  dmx.fade_up_down, [2,7,12,17], intervalle, 30, 100, 4))
+            G.extend( dmx.multi(delai,  dmx.fade_up_down, [4,9,14,19], intervalle, 50, 255, 4))
+            delai = delai + intervalle + 0.3
+            intervalle = intervalle - dec
         return G
 
     def multi_boucle_timeout(self, delai, duree, fonction, canaux, *args):

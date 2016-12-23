@@ -36,17 +36,17 @@ class Effets():
         G.extend( dmx.multi(0, dmx.fade_up_down, [12, 17], 0.8, 0, 255, 8))
         G.extend( dmx.multi(0, dmx.fade_up_down, [14, 19], 0.8, 0, 255, 8)) #fade up down rose
         G.extend( dmx.multi(1.2,  dmx.fade_up_down_kill, [2,3,4,7,8,9], 0.2, 0, 255, 8, 3.8)) #fade up 0.2s phase 1
-        #g = gevent.spawn_later(1.5, dmx.interruption,[2,3,4], 2)
-        #G.extend( dmx.multi(1.6, dmx.fade, [2], 0.2, 0, 255, 6, 1) )
-        #g = gevent.spawn_later(4, dmx.interruption,[2,3,4], 0)
-        #G.extend(gevent.spawn_later(2, dmx.interruption, [2,3,4], 0))
+
         G.extend( dmx.multi(3, dmx.fade_up_down_kill, [12,13,14,17,18,19], 0.3, 0, 255, 8, 2)) #fade up 0.2s phase 2
         G.extend( dmx.multi(5, dmx.fade, [2,3,4,7,8,9], 2, 255, 0, 2)) #fade down
         G.extend( dmx.multi(5, dmx.fade, [12,13,14,17,18,19], 2, 255, 0, 2)) #fade down
+        G.extend( dmx.multi(9.2, dmx.fade, [2,4], 0.3, 0, 50, 4))
         G.extend( dmx.multi_boucle(9.5, 3, dmx.fade_up_down, [2,4], 2.9, 50, 255, 4))
         G.extend( dmx.multi(19, dmx.fade, [2,4], 0.2, 50, 0, 4))
+        G.extend( dmx.multi(13.2, dmx.fade, [7,9], 0.3, 0, 50, 4))
         G.extend( dmx.multi_boucle(13.5, 2, dmx.fade_up_down, [7,9], 2, 50, 255, 4))
         G.extend( dmx.multi(18, dmx.fade, [7,9], 1, 50, 0, 2))
+
         #page 3
         #G.extend( dmx.multi(20.3, dmx.fade_up_down_kill, [7,9], 0.8, 50, 255, 6, 20.2))
         G.extend( dmx.multi(19, dmx.fade, [4], 1, 0, 255, 2))
@@ -62,11 +62,11 @@ class Effets():
         G.extend( dmx.multi(26.5, dmx.fade, [9], 1, 0, 255, 2))
         G.extend( dmx.multi(27.5, dmx.fade, [9], 0.5, 255, 0, 4))
         G.extend( dmx.multi(28, dmx.fade, [2,4,7,9,12,14,17,19], 2, 0,255, 2))
-        G.extend( dmx.multi(30, dmx.fade, [2,4,7,9,12,14,17,19], 0.5, 255, 0, 2))
+        G.extend( dmx.multi(30, dmx.fade, [2,4,7,9,12,14,17,19], 0.4, 255, 0, 2))
         G.extend( dmx.multi(30.5, dmx.fade, [2,7,12,17], 1, 0,255, 2))
         G.extend( dmx.multi(31.5, dmx.fade, [2,7,12,17], 1, 255,0, 2))
         #circle
-        G.extend( dmx.effet_gouttes(32.5, 12, 0.5))
+        G.extend( dmx.effet_gouttes(32.5, 14, 0.5))
         G.extend( dmx.rire(40.4, 1, [2,3], [2,3,4]))
         G.extend( dmx.rire(41.4, 1, [7,8], [7,8,9]))
         G.extend( dmx.rire(46.5, 1, [12,13], [12,13,14]))
@@ -77,12 +77,32 @@ class Effets():
         G.extend( dmx.rire(53.5, 1, [17,18], [17,18,19]))
         G.extend( dmx.rire(51.4, 1, [2,3], [2,3,4]))
         G.extend( dmx.rire(56, 1, [7,8], [7,8,9]))
+        G.extend( dmx.multi(60.5, dmx.fade_up_down, [2,4], 0.5, 20, 255, 4))
+        G.extend( dmx.multi(61, dmx.fade_up_down, [7,9], 0.5, 20, 255, 4))
 
-        #G.extend( dmx.multi(32.5, dmx.fade_up_down, [2,4], 1, 0, 255, 2))
-        #G.extend( dmx.multi(33, dmx.fade_up_down, [7,9], 1, 0, 255, 2))
-        #G.extend( dmx.multi(33.5, dmx.fade_up_down, [12,14], 1, 0, 255, 2))
-        #G.extend( dmx.multi(34, dmx.fade_up_down, [17,19], 1, 0, 255, 2))
-        #G.extend( gevent.spawn_later(9.5, dmx.fade, 2, 1.5, 0, 255, 4))
+        #1er cri
+        G.append( gevent.spawn_later(61.7, dmx.strobe, [2,3,4,7,8,9,12,13,14,17,18,19], 1, 0, 255, 15))
+        G.extend( dmx.multi(62.8, dmx.fade, [2,3,4,7,8,9,12,13,14,17,18,19], 0.2, 0,255, 2))
+        G.extend( dmx.multi(63, dmx.fade, [2,3,4,7,8,9,12,13,14,17,18,19], 2, 255, 0, 2))
+        G.append( gevent.spawn_later(65.1, dmx.strobe, [2,3,4,7,8,9,12,13,14,17,18,19], 2, 0, 255, 15))
+
+        G.extend( dmx.multi(67.5,  dmx.fade_up_down_kill, [2,4,7,9,12,14,17,19], 1, 20, 255, 4, 4.7))
+
+        G.extend( dmx.effet_grad(72.5, 23, 1.5, 0.3 ))
+
+        G.extend( dmx.inter_fade(78, 1.5, 0.2, [2], [2,3,4]))
+        G.extend( dmx.inter_fade(78.5, 3, 0.3, [7], [7,8,9]))
+        G.extend( dmx.inter_fade(78.5, 3, 0.4, [12], [12,13,14]))
+        G.extend( dmx.inter_fade(78, 3.5, 0.5, [17], [17,18,19]))
+
+
+        G.extend( dmx.multi(96, dmx.fade, [12,13,14,17,18,19], 0.5, 255, 0, 2)) #fade down
+
+        G.extend( dmx.multi(96,  dmx.fade_up_down_kill, [2,3,4,7,8,9], 0.2, 0, 255, 8, 2.4)) #fade up 0.2s phase 1
+
+        G.extend( dmx.multi(97.5, dmx.fade_up_down_kill, [12,13,14,17,18,19], 0.3, 0, 255, 8, 1)) #fade up 0.2s phase 2
+        G.extend( dmx.multi(98.5, dmx.fade, [2,3,4,7,8,9], 2, 255, 0, 2)) #fade down
+        G.extend( dmx.multi(98.5, dmx.fade, [12,13,14,17,18,19], 2, 255, 0, 2)) #fade down
 
         #g3 = gevent.spawn_later(1, dmx.boucle, dmx.fade_up_down, 3, 8, 3, 100, 255)
         gevent.joinall(G)
