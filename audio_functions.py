@@ -3,6 +3,11 @@
 """
 oui ce fichier est crade mais ça marche, et normalement vous devriez pas avoir
 à mettre les mains dedans donc la flem de cleaner :-)
+
+ToDo:
+- corriger le fait que j'ai actuellement une instance par fichier. c'est pratique
+mais vraiment NON, ça se fait pas.
+
 """
 
 from vlc import *
@@ -42,8 +47,9 @@ def pos_callback(event, player):
 
 
 ### CONSTRUCTION DES INSTANCES SONORES
-filename = os.path.expanduser("data/audio/battement/battement_double2.wav")
 
+### le battement de coeur
+filename = os.path.expanduser("data/audio/battement/battement_double2.wav")
 # Need --sub-source=marq in order to use marquee below
 instance = Instance(["--sub-source=marq"] + sys.argv[1:])
 try:
@@ -56,7 +62,7 @@ except (AttributeError, NameError) as e:
 player = instance.media_player_new()
 
 
-
+### séquence des sirènes
 filename2 = os.path.expanduser("data/audio/sequences/2_sirenes_170102.wav")
 instance2 = Instance(["--sub-source=marq"] + sys.argv[1:])
 try:
@@ -69,6 +75,19 @@ except (AttributeError, NameError) as e:
 player2 = instance2.media_player_new()
 
 
+### la cloche de début
+filename3 = os.path.expanduser("data/audio/bell2.mp3")
+instance3 = Instance(["--sub-source=marq"] + sys.argv[1:])
+try:
+    media3 = instance3.media_new(filename3)
+except (AttributeError, NameError) as e:
+    print('%s: %s (%s %s vs LibVLC %s)' % (e.__class__.__name__, e,
+                                           sys.argv[0], __version__,
+                                           libvlc_get_version()))
+    sys.exit(1)
+player3 = instance3.media_player_new()
+
+
 
 
 def audio_battement(level):
@@ -76,15 +95,31 @@ def audio_battement(level):
     player.set_media(media)
     player.play()
 
+
 def audio_sequence(no):
     if no==2:
         player2.audio_set_volume(50)
         player2.set_media(media2)
         player2.play()
 
+def audio_bell():
+    player3.audio_set_volume(100)
+    player3.set_media(media3)
+    player3.play()
+
+
+
+
+
 def audio_stop(player_no):
+    """
+    ToDo: rajouter la prise en charge du numéro de player.
+
+    """
     player2.stop()
     player2.audio_set_volume(0)
+
+
 
 if __name__ == '__main__':
 

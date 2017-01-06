@@ -29,6 +29,7 @@ import ast  # for str-to-dict cast
 
 from dmx_functions import DMX
 from effets import Effets
+from audio_functions import audio_bell
 
 import time
 
@@ -177,7 +178,8 @@ class outputs_arduinos(Thread):
 if __name__ == '__main__':
     try:
         # on attend que le personnel de l'expo branche les trucs. on leur laisse 10 secondes À CHANGER EN 1 MINUTE !!
-        
+        audio_bell()
+        sleep(1)
 
         # on ouvre le port d'écoute de l'arduino MEGA qui écoute les 8 ultrasons
         # ard_sensors = serial.Serial('/dev/ttyUSB2', 115200)
