@@ -142,10 +142,10 @@ class Effets():
         audio_battement(level=level)
 
         # lumière
-        g1 = gevent.spawn(dmx.battement, canal=2, duree=.8, val_dep=0, val_fin=255)
-        g4 = gevent.spawn(dmx.send_serial, self.ard_dmx, 0.03)
-        gevent.joinall([g1])
-        g4.kill()
+        # g1 = gevent.spawn(dmx.battement, canal=2, duree=.8, val_dep=0, val_fin=255)
+        # g4 = gevent.spawn(dmx.send_serial, self.ard_dmx, 0.03)
+        # gevent.joinall([g1])
+        # g4.kill()
 
         # gestion des palliers
         if level==1:

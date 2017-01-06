@@ -57,7 +57,7 @@ player = instance.media_player_new()
 
 
 
-filename2 = os.path.expanduser("data/audio/sequences/2_sirenes_1222.wav")
+filename2 = os.path.expanduser("data/audio/sequences/2_sirenes_170102.wav")
 instance2 = Instance(["--sub-source=marq"] + sys.argv[1:])
 try:
     media2 = instance2.media_new(filename2)
@@ -72,25 +72,32 @@ player2 = instance2.media_player_new()
 
 
 def audio_battement(level):
+    player.audio_set_volume(100)
     player.set_media(media)
     player.play()
 
 def audio_sequence(no):
     if no==2:
+        player2.audio_set_volume(50)
         player2.set_media(media2)
         player2.play()
 
 def audio_stop(player_no):
     player2.stop()
+    player2.audio_set_volume(0)
 
 if __name__ == '__main__':
+
     sleep(1)
-    # while 1:
-    try:
-        player2.set_media(media2)
-        player2.play()
-    except:
-        print exc_info()
+    player2.set_media(media2)
+    player2.play()
+    # print import pprin
+    print(dir(player2))
+    raw_input()
+    player2.audio_set_volume(0)
+    raw_input()
+    player2.audio_set_volume(100)
+    raw_input()
     # sleep(1.2)
     # player2.set_media(media2)
     # player2.play()
