@@ -80,6 +80,12 @@ class DMX():
                 i=0
             trame[canal][t] =  i
             gevent.sleep(pause)
+    def constant(self, canal, val, t=0):
+        global trame, interrup
+        pause = 1
+        while 1:
+            trame[canal][t] =  val
+            gevent.sleep(pause)
 
     def strobe(self, canaux, duree, val_bas, val_haut,freq, t=0):
         global trame
@@ -172,6 +178,41 @@ class DMX():
                 trame_envoi = trame_envoi + str(i) + "c" + str(e) + "w"
             ard_dmx.write(trame_envoi)
             gevent.sleep(pause)
+
+    def battement(self, canal, duree, val_dep, val_fin, pas, t = 0):
+        global trame
+        pause = (float(duree)/abs(val_dep-val_fin))*float((pas/2))
+        if val_dep > val_fin :
+            valeurs = range(val_dep,val_fin, -pas)
+        else : valeurs = range(val_dep, val_fin, pas)
+        valeurs1 = range(val_dep, val_fin, pas*2)
+        for i in valeurs:
+            if i <= pas :
+                trame[canal][t] =  0
+            else :
+                trame[canal][t] =  i
+            gevent.sleep(pause)
+
+        for i in reversed(valeurs1):
+            if i <= pas*2 :
+                trame[canal][t] =  0
+            else :
+                trame[canal][t] =  i
+            gevent.sleep(pause)
+
+    def valeur(self, canaux, valeurs):
+        global trame
+        j = 0
+        for i in canaux:
+            trame[i][0] = valeurs[j]
+            j += 1
+
+    def attente(self, duree, capteur):
+        pause = 0.1
+        fin = 0
+        tic = time.time()
+        while (time.time() - tic < duree) and (capteur == false):
+            gevent.sleep(0.1)
 
     def battement_de_coeur(self):
         """

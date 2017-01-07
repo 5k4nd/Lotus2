@@ -13,7 +13,7 @@ IMPORTANT :
     - au démarrage du système le capteur capacitif NE DOIT PAS ÊTRE TOUCHÉ
 
 """
-
+import time
 
 from threading import Thread
 from time import sleep
@@ -55,10 +55,11 @@ class daemon_capacitor(Thread):
         """
         cette boucle tourne en boucle. peut être utile pour effectuer des
         opérations périodiques (de la transformation de données en temps-réel
-            par exemple)
+            par exemple).
+        elle teste notamment le CAPTEUR CAPACITIF, qui fait un front montant pendant 1 seconde lorsqu'il est touché
         """
         while 1:
-            sleep(.1)
+            sleep(.01)
             try:
                 ### LISTEN FROM ARD_CAPACITOR (capacitif Lotus)
                 got = self.ard_capacitor.readline()
@@ -76,10 +77,24 @@ class daemon_capacitor(Thread):
                             print('[INFO] ground capacitif initialisé à %s' % self.data['capacitor_ground'])
 
                         self.data['capacitor_value'] = int(got['capa'])
-                        # print self.data['capacitor_value']
+                        print self.data['capacitor_value']
 
-                if (self.data['capacitor_value'] > self.data['capacitor_ground']):
+                # si le capteur est touché, disons pin_ground + 5
+                delta = 3
+                # note : baisser delta pour plus de réactivité, l'augmenter si le lotus se déclenche tout seul ! :-)
+                if (self.data['capacitor_value'] > (self.data['capacitor_ground'] + delta)):
+                    #print("capacitif touché à %s" % self.data['capacitor_value'])
                     self.must_start_sequence = True
+                    self.must_start_effet = True
+
+                    # on vide le buffer
+                    tic = time.time()
+                    while (time.time() - tic < 1):
+                        self.ard_capacitor.readline()
+                else:
+                    self.must_start_sequence = False
+                print ("CAPACITOR %s" % self.must_start_sequence)
+
 
             except:
                 #quelle que soit l'erreur (formatage des donnees, valeurs aberrantes, etc.) on passe
@@ -144,22 +159,15 @@ class outputs_arduinos(Thread):
         """
         while 1:
             sleep(.01)
-            effet = Effets(self.ard_dmx, self.arduino_sensors)
+            effet = Effets(self.ard_dmx, self.arduino_sensors, self.ard_capacitor)
 
             try:
-                #tp1 = time.time()
-
-                effet.battement_de_coeur()
-
-
-                #print(tp2 - tp1)
+                dmx = DMX()
+                effet.battement_de_coeur(dmx)
 
                 if self.ard_capacitor.must_start_sequence:
-                    # TEST : plutôt que de lancer la séquence on lance un bruit
-                    # effet.ponctuel()
                     effet.sequence()
                     effet.sequence_stop()
-                    self.ard_capacitor.must_start_sequence = False
 
 
             except exc_info():
@@ -178,8 +186,8 @@ class outputs_arduinos(Thread):
 if __name__ == '__main__':
     try:
         # on attend que le personnel de l'expo branche les trucs. on leur laisse 10 secondes À CHANGER EN 1 MINUTE !!
-        audio_bell()
-        sleep(1)
+        #audio_bell()
+        #sleep(1)
 
         # on ouvre le port d'écoute de l'arduino MEGA qui écoute les 8 ultrasons
         # ard_sensors = serial.Serial('/dev/ttyUSB2', 115200)
@@ -204,8 +212,8 @@ if __name__ == '__main__':
         sleep(1)
 
         # on ouvre le port d'écoute de l'arduino UNO-DMX
-        # ard_dmx = serial.Serial('/dev/ttyACM1', 115200)
-        ard_dmx = "coucou"
+        ard_dmx = serial.Serial('/dev/ttyACM1', 115200)
+        #ard_dmx = "coucou"
 
         # on démarre le thread qui gère l'arduino UNO DMX
         arduino_senders = outputs_arduinos(ard_dmx, arduino_sensors, arduino_capacitor)

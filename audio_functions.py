@@ -63,7 +63,7 @@ player = instance.media_player_new()
 
 
 ### séquence des sirènes
-filename2 = os.path.expanduser("data/audio/sequences/2_sirenes_170102.wav")
+filename2 = os.path.expanduser("data/audio/sequences/2_sirenes.wav")
 instance2 = Instance(["--sub-source=marq"] + sys.argv[1:])
 try:
     media2 = instance2.media_new(filename2)
@@ -98,9 +98,12 @@ def audio_battement(level):
 
 def audio_sequence(no):
     if no==2:
-        player2.audio_set_volume(50)
+        player.audio_set_volume(0)
+        player2.audio_set_volume(100)
         player2.set_media(media2)
         player2.play()
+
+
 
 def audio_bell():
     player3.audio_set_volume(100)
@@ -140,6 +143,3 @@ if __name__ == '__main__':
     event_manager = player.event_manager()
     event_manager.event_attach(EventType.MediaPlayerEndReached,      end_callback)
     event_manager.event_attach(EventType.MediaPlayerPositionChanged, pos_callback, player)
-
-
-
