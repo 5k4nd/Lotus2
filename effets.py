@@ -24,10 +24,10 @@ class Effets():
 
 
 
-    def sequence(self):
+    def sequence(self, ref_thread_outputs_arduino):
         print('START SEQUENCE')
         tic = time.time()
-        audio_sequence(2)
+        audio_sequence(2, ref_thread_outputs_arduino)
         dmx = self.dmx
         dmx.zero()
         SS = gevent.spawn(dmx.send_serial, self.ard_dmx, 0.02)
@@ -91,10 +91,10 @@ class Effets():
 
         G.extend( dmx.effet_grad(72.5, 23, 1.5, 0.3 ))
 
-        G.extend( dmx.inter_fade(78, 1.5, 0.2, [2], [2,3,4]))
-        G.extend( dmx.inter_fade(78.5, 3, 0.3, [7], [7,8,9]))
-        G.extend( dmx.inter_fade(78.5, 3, 0.4, [12], [12,13,14]))
-        G.extend( dmx.inter_fade(78, 3.5, 0.5, [17], [17,18,19]))
+        G.extend( dmx.inter_fade(78, 7, 0.2, [2], [2,3,4]))
+        G.extend( dmx.inter_fade(78, 7, 0.3, [7], [7,8,9]))
+        G.extend( dmx.inter_fade(78, 6, 0.4, [12], [12,13,14]))
+        G.extend( dmx.inter_fade(78, 6, 0.5, [17], [17,18,19]))
 
 
         G.extend( dmx.multi(96, dmx.fade, [12,13,14,17,18,19], 0.5, 255, 0, 2)) #fade down
@@ -111,23 +111,23 @@ class Effets():
                 gevent.joinall([j])
 
         #g3 = gevent.spawn_later(1, dmx.boucle, dmx.fade_up_down, 3, 8, 3, 100, 255)
-        print("fin")
+        # print("fin")
         #gevent.joinall(G)
         sleep(2)
         SS.kill()
-        print ('fin')
-        print time.time()-tic
+        # print ('fin')
+        # print time.time()-tic
 
     # def battement_de_coeur_1(self):
     #     dmx = self.dmx
     #     while 1:
             # distance = self.ard_sensors.data['capt1']
 
-    def sequence_stop(self):
-        audio_stop(2)
+    # def sequence_stop(self):
+    #     audio_stop(2)
 
 
-    def battement_de_coeur(self, dmx):
+    def battement_de_coeur(self, dmx, ref_thread_outputs_arduino):
         """
         battement de coeur en fonction de la distance, comprise sur [1, 239].
         on divise par 210 pour obtenir un pas de 30cm, soit 7 niveaux en tout.
@@ -147,7 +147,7 @@ class Effets():
         level =8
         # son
         print("battement %s" % level)
-        audio_battement(level=level)
+        audio_battement(level=level, ref_thread_outputs_arduino=ref_thread_outputs_arduino)
 
         # lumière
         #g1 = gevent.spawn(dmx.battement, canal=2, duree=.8, val_dep=0, val_fin=255)
@@ -162,8 +162,8 @@ class Effets():
         while (len(gevent.joinall(G, timeout=0)) != len(G)) and (fin == 0):
             #print(len( gevent.joinall(G, timeout=0)))
             if (self.ard_capacitor.must_start_sequence == True):
-                print("boucle 1:")
-                print(self.ard_capacitor.must_start_sequence)
+                # print("boucle 1:")
+                # print(self.ard_capacitor.must_start_sequence)
                 fin = 1
 
         #gevent.joinall(G)
@@ -185,8 +185,9 @@ class Effets():
         elif level==8:
             tic = time.time()
             while (time.time() - tic < 1.3) and (self.ard_capacitor.must_start_sequence == False):
-                print("boucle 2:")
-                print(self.ard_capacitor.must_start_sequence)
+                foo = 42
+                # print("boucle 2:")
+                # print(self.ard_capacitor.must_start_sequence)
 
 
         F.kill()

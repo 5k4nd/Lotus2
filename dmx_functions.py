@@ -97,8 +97,13 @@ class DMX():
             gevent.sleep(pause)
             for i in canaux:
                 trame[i][t] = val_bas
-            if (time.time() - tic > duree) : return 0
+            if (time.time() - tic > duree) : 
+                for i in canaux:
+                    trame[i][t] = 0
+                return 0
             gevent.sleep(pause)
+        
+            
 
 
     def multi(self, delai, fonction, canaux, *args):

@@ -33,7 +33,6 @@ from audio_functions import audio_bell
 
 import time
 
-
 class daemon_capacitor(Thread):
     """
         thread de l'arduino du capacitif (NANO).
@@ -80,10 +79,10 @@ class daemon_capacitor(Thread):
                         print self.data['capacitor_value']
 
                 # si le capteur est touché, disons pin_ground + 5
-                delta = 3
+                delta = 16
                 # note : baisser delta pour plus de réactivité, l'augmenter si le lotus se déclenche tout seul ! :-)
                 if (self.data['capacitor_value'] > (self.data['capacitor_ground'] + delta)):
-                    #print("capacitif touché à %s" % self.data['capacitor_value'])
+                    print("capacitif touché à %s" % self.data['capacitor_value'])
                     self.must_start_sequence = True
                     self.must_start_effet = True
 
@@ -93,7 +92,7 @@ class daemon_capacitor(Thread):
                         self.ard_capacitor.readline()
                 else:
                     self.must_start_sequence = False
-                print ("CAPACITOR %s" % self.must_start_sequence)
+                # print ("CAPACITOR %s" % self.must_start_sequence)
 
 
             except:
@@ -146,6 +145,12 @@ class outputs_arduinos(Thread):
         self.ard_dmx = ref_ard_dmx
         self.arduino_sensors = arduino_sensors
         self.ard_capacitor = arduino_capacitor
+
+        # variable nécessaire dans audio_functions.py pour baisser proprement le volume si on sort de la séquence inopinément
+        # par exemple si le lighteux te fait finir la séquence alors que la musique est pas finie (sic).
+        #  voir la méthode audio_battement() pour plus de détails
+        self.GLOBAL_STATE_SEQUENCE = True
+
         """try:
             # mixer.init()
         except:
@@ -163,11 +168,11 @@ class outputs_arduinos(Thread):
 
             try:
                 dmx = DMX()
-                effet.battement_de_coeur(dmx)
+                effet.battement_de_coeur(dmx, ref_thread_outputs_arduino=self)
 
                 if self.ard_capacitor.must_start_sequence:
-                    effet.sequence()
-                    effet.sequence_stop()
+                    effet.sequence(ref_thread_outputs_arduino=self)
+                    # effet.sequence_stop()
 
 
             except exc_info():
@@ -198,7 +203,7 @@ if __name__ == '__main__':
         arduino_sensors.start()
 
 
-        # on ouvre le port d'écoute de l'arduino NANO qui écoute le lotus
+        # on ouvre le port d'écoute de l'arduino UNO qui écoute le lotus
         ard_capacitor = serial.Serial('/dev/ttyACM0', 115200)
         # ard_capacitor = "coucou"
 
@@ -213,7 +218,7 @@ if __name__ == '__main__':
 
         # on ouvre le port d'écoute de l'arduino UNO-DMX
         ard_dmx = serial.Serial('/dev/ttyACM1', 115200)
-        #ard_dmx = "coucou"
+        # ard_dmx = "coucou"
 
         # on démarre le thread qui gère l'arduino UNO DMX
         arduino_senders = outputs_arduinos(ard_dmx, arduino_sensors, arduino_capacitor)
