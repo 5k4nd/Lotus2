@@ -12,6 +12,11 @@ par convention nous avons choisi :
 IMPORTANT :
     - au démarrage du système le capteur capacitif NE DOIT PAS ÊTRE TOUCHÉ
 
+
+
+ToDo:
+    - régler le volume. actuellement c'est n'imp, audio_set_volume n'a AUCUN effet !!
+
 """
 import time
 
@@ -76,10 +81,10 @@ class daemon_capacitor(Thread):
                             print('[INFO] ground capacitif initialisé à %s' % self.data['capacitor_ground'])
 
                         self.data['capacitor_value'] = int(got['capa'])
-                        print self.data['capacitor_value']
+                        # print self.data['capacitor_value']
 
-                # si le capteur est touché, disons pin_ground + 5
-                delta = 16
+                # si le capteur est touché, disons valeur ded pin_ground + delta
+                delta = 5
                 # note : baisser delta pour plus de réactivité, l'augmenter si le lotus se déclenche tout seul ! :-)
                 if (self.data['capacitor_value'] > (self.data['capacitor_ground'] + delta)):
                     print("capacitif touché à %s" % self.data['capacitor_value'])
@@ -171,6 +176,7 @@ class outputs_arduinos(Thread):
                 effet.battement_de_coeur(dmx, ref_thread_outputs_arduino=self)
 
                 if self.ard_capacitor.must_start_sequence:
+                    print("MAIN: start sequence")
                     effet.sequence(ref_thread_outputs_arduino=self)
                     # effet.sequence_stop()
 
@@ -190,7 +196,7 @@ class outputs_arduinos(Thread):
 
 if __name__ == '__main__':
     try:
-        # on attend que le personnel de l'expo branche les trucs. on leur laisse 10 secondes À CHANGER EN 1 MINUTE !!
+        # on attend que le personnel de l'expo branche les trucs. on leur laisse 10 secondes << À CHANGER EN 1 MINUTE !!
         #audio_bell()
         #sleep(1)
 
@@ -221,8 +227,11 @@ if __name__ == '__main__':
         # ard_dmx = "coucou"
 
         # on démarre le thread qui gère l'arduino UNO DMX
-        arduino_senders = outputs_arduinos(ard_dmx, arduino_sensors, arduino_capacitor)
-        arduino_senders.start()
+        try:
+            arduino_senders = outputs_arduinos(ard_dmx, arduino_sensors, arduino_capacitor)
+            arduino_senders.start()
+        except:
+            print("impossibles de démarrer l'arduino senders")
 
     except:
         print 'problème d\'INIT'
@@ -249,4 +258,4 @@ if __name__ == '__main__':
     # on ferme "proprement" les ports d'écoute des serial arduino
     ard_dmx.close()
     ard_capacitor.close()
-    ard_sensors.close()
+    # ard_sensors.close()

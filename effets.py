@@ -7,6 +7,16 @@ import time
 #from gevent import getcurrent
 from gevent.pool import Group
 
+
+######### DÉFINITION DU MATÉRIEL UTILISÉ (LAMPES, SPOTS, ETC.)
+# PAR LED : 1, 6, 11, 16
+PAR_LED_1 = 1
+PAR_LED_2 = 6
+PAR_LED_3 = 11
+PAR_LED_4 = 16
+PAR_1000_1 = 21
+
+
 class Effets():
     """
         dans cette classe se trouvent tous les effets.
@@ -21,9 +31,6 @@ class Effets():
         self.ard_capacitor = ard_capacitor
 
 
-
-
-
     def sequence(self, ref_thread_outputs_arduino):
         print('START SEQUENCE')
         tic = time.time()
@@ -32,10 +39,21 @@ class Effets():
         dmx.zero()
         SS = gevent.spawn(dmx.send_serial, self.ard_dmx, 0.02)
         G = []
-        G.extend( dmx.multi(0, dmx.fade, [4, 9], 0.2, 0, 255, 6) ) #bleu vers blanc
-        G.extend( dmx.multi(0.5, dmx.fade, [2, 3, 7, 8], 1, 0, 255, 4) )#bleu vers blanc
+
+        # cette fonction duplique dmx.fade pour les canaux 4 et 9 et les lance
+        G.extend(
+            dmx.multi
+            (
+                0,              # delai avant demarrage
+                dmx.fade,       # fonction appelée, ici pour bleu vers blanc
+                [4, 9],         # sur channels
+                0.2, 0, 255, 6  # ensuite c'est des parametres
+            )
+        )
+
         G.extend( dmx.multi(0, dmx.fade_up_down, [12, 17], 0.8, 0, 255, 8))
         G.extend( dmx.multi(0, dmx.fade_up_down, [14, 19], 0.8, 0, 255, 8)) #fade up down rose
+        G.extend( dmx.multi(0.5, dmx.fade, [2, 3, 7, 8], 1, 0, 255, 4) )#bleu vers blanc
         G.extend( dmx.multi(1.2,  dmx.fade_up_down_kill, [2,3,4,7,8,9], 0.2, 0, 255, 8, 3.8)) #fade up 0.2s phase 1
 
         G.extend( dmx.multi(3, dmx.fade_up_down_kill, [12,13,14,17,18,19], 0.3, 0, 255, 8, 2)) #fade up 0.2s phase 2
@@ -144,9 +162,9 @@ class Effets():
         if distance > 239:
             distance = 239
         level = int(distance/30) + 1
-        level =8
+        level = 8
         # son
-        print("battement %s" % level)
+        print("battement niveau %s" % level)
         audio_battement(level=level, ref_thread_outputs_arduino=ref_thread_outputs_arduino)
 
         # lumière
@@ -155,11 +173,12 @@ class Effets():
         #gevent.joinall([g1])
         #g4.kill()
         G=[]
-        F = gevent.spawn(dmx.constant, 21, 50)
+        F = gevent.spawn(dmx.constant, 21, 50)  # PAR-1000
         SS = gevent.spawn(dmx.send_serial, self.ard_dmx, 0.02)
         G.extend( dmx.multi(0, dmx.battement, [2, 7,12 ,17], duree_bat, 0, 255, 4))
         fin = 0
         while (len(gevent.joinall(G, timeout=0)) != len(G)) and (fin == 0):
+            # print self.ard_capacitor.must_start_sequence
             #print(len( gevent.joinall(G, timeout=0)))
             if (self.ard_capacitor.must_start_sequence == True):
                 # print("boucle 1:")
@@ -185,6 +204,8 @@ class Effets():
         elif level==8:
             tic = time.time()
             while (time.time() - tic < 1.3) and (self.ard_capacitor.must_start_sequence == False):
+                # print("seconde boucle")
+                # sleep(.001)
                 foo = 42
                 # print("boucle 2:")
                 # print(self.ard_capacitor.must_start_sequence)

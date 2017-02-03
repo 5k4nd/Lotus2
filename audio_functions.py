@@ -92,18 +92,19 @@ player3 = instance3.media_player_new()
 
 
 def audio_battement(level, ref_thread_outputs_arduino):
-    print ref_thread_outputs_arduino.GLOBAL_STATE_SEQUENCE
     if ref_thread_outputs_arduino.GLOBAL_STATE_SEQUENCE:
         for i in range(100,50,-2):
-            print(i)
-            sleep(.02)
+            # print(i)
+            # sleep(.02)
             player2.audio_set_volume(i)
             audio_stop(2)
         player2.audio_set_volume(0)
         ref_thread_outputs_arduino.GLOBAL_STATE_SEQUENCE = False
-    player.audio_set_volume(100)
-    player.set_media(media)
-    player.play()
+    else:
+        player.audio_set_volume(100)
+        player.set_media(media)
+        player.play()
+
 
 
 def audio_sequence(no, ref_thread_outputs_arduino):
@@ -111,7 +112,7 @@ def audio_sequence(no, ref_thread_outputs_arduino):
     audio_stop(1)
     if no==2:
         print("début séquence 2_sirenes")
-        player2.audio_set_volume(100)
+        player2.audio_set_volume(0)  # <<<< ???????? ne marche pas !!!
         player2.set_media(media2)
         player2.play()
         player2.audio_set_volume(0)
