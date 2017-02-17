@@ -7,6 +7,9 @@ from gevent.event import AsyncResult
 from time import sleep
 import time
 from math import *
+from data.materiel import *
+
+
 interrup = [0]*25
 trame = [0]*25
 trame1 = [0]*25
@@ -205,6 +208,7 @@ class DMX():
                 trame[canal][t] =  i
             gevent.sleep(pause)
 
+
     def valeur(self, canaux, valeurs):
         global trame
         j = 0
@@ -219,47 +223,47 @@ class DMX():
         while (time.time() - tic < duree) and (capteur == false):
             gevent.sleep(0.1)
 
-    def battement_de_coeur(self):
-        """
-        battement de coeur en fonction de la distance, comprise sur [1, 239].
-        on divise par 210 pour obtenir un pas de 30cm, soit 7 niveaux en tout.
+    # def battement_de_coeur(self):
+    #     """
+    #     battement de coeur en fonction de la distance, comprise sur [1, 239].
+    #     on divise par 210 pour obtenir un pas de 30cm, soit 7 niveaux en tout.
 
-        La fonction appelle respectivement les fonctions de lumières (DMX) et de son (VLC)
+    #     La fonction appelle respectivement les fonctions de lumières (DMX) et de son (VLC)
 
-        """
-        dmx = DMX()
-        distance = self.ard_sensors.data['capt1']  # remplacer par un truc pertinent !
-        # distance = 9  # pour les tests
+    #     """
+    #     dmx = DMX()
+    #     distance = self.ard_sensors.data['capt1']  # remplacer par un truc pertinent !
+    #     # distance = 9  # pour les tests
 
-        # si jamais on a plus de 239 cm on gère pas, donc on ramène à du connu
-        if distance > 239:
-            distance = 239
-        level = int(distance/30) + 1
+    #     # si jamais on a plus de 239 cm on gère pas, donc on ramène à du connu
+    #     if distance > 239:
+    #         distance = 239
+    #     level = int(distance/30) + 1
 
-        # son
-        print("battement %s" % level)
-        audio_battement(level=level)
+    #     # son
+    #     print("battement %s" % level)
+    #     audio_battement(level=level)
 
-        # lumière
-        g1 = gevent.spawn(dmx.battement, canal=2, duree=.8, val_dep=0, val_fin=255)
-        g4 = gevent.spawn(dmx.send_serial, self.ard_dmx, 0.03)
-        gevent.joinall([g1])
-        g4.kill()
+    #     # lumière
+    #     # g1 = gevent.spawn(dmx.battement, canal=2, duree=.8, val_dep=0, val_fin=255)
+    #     # g4 = gevent.spawn(dmx.send_serial, self.ard_dmx, 0.03)
+    #     gevent.joinall([g1])
+    #     g4.kill()
 
-        # gestion des palliers
-        if level==1:
-            sleep(.2)
-        elif level==2:
-            sleep(.3)
-        elif level==3:
-            sleep(.4)
-        elif level==4:
-            sleep(.5)
-        elif level==5:
-            sleep(.7)
-        elif level==6:
-            sleep(.9)
-        elif level==7:
-            sleep(1.1)
-        elif level==8:
-            sleep(1.3)
+    #     # gestion des palliers
+    #     if level==1:
+    #         sleep(.2)
+    #     elif level==2:
+    #         sleep(.3)
+    #     elif level==3:
+    #         sleep(.4)
+    #     elif level==4:
+    #         sleep(.5)
+    #     elif level==5:
+    #         sleep(.7)
+    #     elif level==6:
+    #         sleep(.9)
+    #     elif level==7:
+    #         sleep(1.1)
+    #     elif level==8:
+    #         sleep(1.3)

@@ -84,7 +84,7 @@ class daemon_capacitor(Thread):
                         # print self.data['capacitor_value']
 
                 # si le capteur est touché, disons valeur ded pin_ground + delta
-                delta = 5
+                delta = 2
                 # note : baisser delta pour plus de réactivité, l'augmenter si le lotus se déclenche tout seul ! :-)
                 if (self.data['capacitor_value'] > (self.data['capacitor_ground'] + delta)):
                     print("capacitif touché à %s" % self.data['capacitor_value'])
@@ -238,8 +238,6 @@ if __name__ == '__main__':
         print exc_info()
         print exc_info()[-1].tb_lineno
         pass
-
-
 
 
     try:

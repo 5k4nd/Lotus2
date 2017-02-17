@@ -2,19 +2,12 @@
 # -*- coding: utf-8 -*-
 from dmx_functions import DMX
 from audio_functions import *
-import gevent
+import gevent   #, getcurrent
 import time
-#from gevent import getcurrent
+
 from gevent.pool import Group
 
-
-######### DÉFINITION DU MATÉRIEL UTILISÉ (LAMPES, SPOTS, ETC.)
-# PAR LED : 1, 6, 11, 16
-PAR_LED_1 = 1
-PAR_LED_2 = 6
-PAR_LED_3 = 11
-PAR_LED_4 = 16
-PAR_1000_1 = 21
+from data.materiel import *
 
 
 class Effets():
