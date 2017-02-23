@@ -5,8 +5,8 @@ oui ce fichier est crade mais ça marche, et normalement vous devriez pas avoir
 à mettre les mains dedans donc la flem de cleaner :-)
 
 ToDo:
-- corriger le fait que j'ai actuellement une instance par fichier. c'est pratique
-mais vraiment NON, ça se fait pas.
+    - corriger le fait que j'ai actuellement une instance par fichier. c'est pratique
+        mais franchement : NON, ça se fait pas !
 
 """
 
@@ -111,7 +111,7 @@ def audio_sequence(no, ref_thread_outputs_arduino):
     ref_thread_outputs_arduino.GLOBAL_STATE_SEQUENCE = True
     audio_stop(1)
     if no==2:
-        print("début séquence 2_sirenes")
+        print("AUDIO: début séquence 2_sirenes")
         player2.audio_set_volume(0)  # <<<< ???????? ne marche pas !!!
         player2.set_media(media2)
         player2.play()

@@ -10,9 +10,27 @@ dans la salle.
 
 
 """
+class PARLED():
+    def __init__(self, adresse):
+        self.r = adresse + 1
+        self.g = adresse + 2
+        self.b = adresse + 3
 
-PAR_LED_1 = 1
-PAR_LED_2 = 6
-PAR_LED_3 = 11
-PAR_LED_4 = 16
-PAR_1000_1 = 21
+class BANDEAU_LED():
+    def __init__(self, adresse):
+        self.r = adresse
+        self.g = adresse + 1
+        self.b = adresse + 2
+
+
+PARLED_1 = PARLED(adresse=1)
+PARLED_2 = PARLED(adresse=6)
+PARLED_3 = PARLED(adresse=11)
+PARLED_4 = PARLED(adresse=16)
+
+
+BANDEAU_LED = BANDEAU_LED(adresse=21)
+
+PAR_1000 = 24
+
+

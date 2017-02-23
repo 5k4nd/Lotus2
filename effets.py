@@ -25,7 +25,6 @@ class Effets():
 
 
     def sequence(self, ref_thread_outputs_arduino):
-        print('START SEQUENCE')
         tic = time.time()
         audio_sequence(2, ref_thread_outputs_arduino)
         dmx = self.dmx
@@ -147,6 +146,8 @@ class Effets():
 
         """
 
+
+        
         duree_bat = 0.5
         #distance = self.ard_sensors.data['capt1']  # remplacer par un truc pertinent !
         distance = 150  # pour les tests
@@ -156,6 +157,7 @@ class Effets():
             distance = 239
         level = int(distance/30) + 1
         level = 8
+
         # son
         print("battement niveau %s" % level)
         audio_battement(level=level, ref_thread_outputs_arduino=ref_thread_outputs_arduino)
@@ -166,7 +168,8 @@ class Effets():
         #gevent.joinall([g1])
         #g4.kill()
         G=[]
-        F = gevent.spawn(dmx.constant, 21, 50)  # PAR-1000
+        F = gevent.spawn(dmx.constant, PAR_1000, 50)
+        H = gevent.spawn(dmx.constant, BANDEAU_LED.g, 150)
         SS = gevent.spawn(dmx.send_serial, self.ard_dmx, 0.02)
         G.extend( dmx.multi(0, dmx.battement, [2, 7,12 ,17], duree_bat, 0, 255, 4))
         fin = 0
@@ -205,5 +208,6 @@ class Effets():
 
 
         F.kill()
-        dmx.valeur([2,7,12,17,21], [0,0,0,0,0])
+        H.kill()
+        dmx.valeur([2, 7, 12, 17, PAR_1000], [0,0,0,0,0])
         SS.kill()

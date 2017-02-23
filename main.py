@@ -1,12 +1,12 @@
 #!env/bin/python2
 # -*- coding: utf8 -*-
 
-""" INFO DIVERSES
+"""
 
-par convention nous avons choisi :
-    - /dev/ttyACMO > MEGA (capteurs de distance)        à brancher en premier
-    - /dev/ttyACM1 > UNO (shield DMX)                   à brancher en deuxième
-    - /dev/ttyUSB0 > NANO (capteur capacitif du lotus)  à brancher en dernier
+==== ports usb (convention de branchement) ====
+EMPTY            > 3-1                3-9  < UNO_DMXO
+MEGA_ULTRASONICS > 3-2                3-10 < MEGA_CAPACITOR
+
 
 
 IMPORTANT :
@@ -15,9 +15,21 @@ IMPORTANT :
 
 
 ToDo:
-    - régler le volume. actuellement c'est n'imp, audio_set_volume n'a AUCUN effet !!
-
+    - VLC: régler le volume. actuellement c'est n'imp, audio_set_volume n'a AUCUN effet !!
+    - ULTRASONICS: faire un algo de traitement et de fiabilité des capteurs
+    - SCÉNO: éclairer le lotus de telle sorte que ça fasse des ombres
 """
+
+############################### config ########################################
+UNO_DMX             = "/dev/ttyACM0"    # shield DMX                        à brancher en premier
+MEGA_ULTRASONICS    = "/dev/ttyACM1"    # capteurs de distance              à brancher en deuxième
+MEGA_CAPACITOR      = "/dev/ttyUSB0"    # capacitif branché sur le lotus    à brancher en troisième
+
+
+###############################################################################
+
+
+
 import time
 
 from threading import Thread
@@ -30,7 +42,7 @@ from pygame import mixer
 
 
 from sys import exc_info
-import ast  # for str-to-dict cast
+import ast  # pour les cast de str vers dict
 
 from dmx_functions import DMX
 from effets import Effets
@@ -40,8 +52,8 @@ import time
 
 class daemon_capacitor(Thread):
     """
-        thread de l'arduino du capacitif (NANO).
-        > le capacitif sur la nano du lotus se branche sur le pin 7
+        thread de l'arduino MEGA du capacitif branché sur le lotus
+            > le capacitif sur la mega du lotus se branche sur le pin PWM 8
 
 
     """
@@ -69,6 +81,7 @@ class daemon_capacitor(Thread):
                 got = self.ard_capacitor.readline()
                 got = got.replace(" ", "")  # remove blanks
                 got = ast.literal_eval(got)  # cast str to dict
+                
 
                 if "capa" in got.keys():
                     # on ignore les 0.
@@ -107,32 +120,43 @@ class daemon_capacitor(Thread):
 
 class arduino_ultrasonics(Thread):
     """
-        thread de
-            - l'arduino des capteurs de distance (MEGA)
+        thread de l'arduino des capteurs de distance (MEGA)
+
+        actuellement je n'utilise qu'un capteur sur deux et je base tout dessus.
 
     """
     def __init__(self, ard_sensors):
         Thread.__init__(self)
-        self.ard_sensors = ard_sensors      # capteurs de ditance (ultrasonic sensors)
+        self.ard_sensors = ard_sensors  # capteurs de ditance (ultrasonic sensors)
         self.data = {
-            'capt1': 239,
+            'standard_distance': 100,   # on considère que le mur face aux capteurs est à 1 mètre
+            'capt1': [200]*5,           # on stocke sur la durée pour résister aux fluctuations d'erreurs électriques
         }
+        self.visitors_detected = False
 
 
     def run(self):
         while 1:
             sleep(.01)
             try:
-
-                ### LISTEN FROM ARD_SENSORS (ulrasonic sensors)
                 got2 = self.ard_sensors.readline()
                 got2 = got2.replace(" ", "")  # remove blanks
                 got2 = ast.literal_eval(got2)  # cast str to dict
+
 
                 if "capt1" in got2.keys():
                     self.data['capt1'] = int(got2['capt1'])
                 if "capt2" in got2.keys():
                     self.data['capt2'] = int(got2['capt2'])
+
+                distance_delta = 20
+                if (self.data['capt1'] < (self.data['standard_distance'] - distance_delta)):
+                    print("capteurs de distance traversés à %s mètres" % self.data['capt1'])
+                    self.visitors_detected = True
+
+                else:
+                    self.visitors_detected = False
+
 
 
             except:
@@ -143,7 +167,7 @@ class arduino_ultrasonics(Thread):
 
 class outputs_arduinos(Thread):
     """
-        thread de l'arduino des sorties, pour l'instant du DMX.
+        thread qui gère le déclenchement des évènements de la classe EFFETS
     """
     def __init__(self, ref_ard_dmx, arduino_sensors, arduino_capacitor):
         Thread.__init__(self)
@@ -201,40 +225,40 @@ if __name__ == '__main__':
         #sleep(1)
 
         # on ouvre le port d'écoute de l'arduino MEGA qui écoute les 8 ultrasons
-        # ard_sensors = serial.Serial('/dev/ttyUSB2', 115200)
-        ard_sensors = "coucou"
+        ard_sensors = serial.Serial(MEGA_ULTRASONICS, 115200)
+        # ard_sensors = "coucou"
 
-        # on démarre le thread d'écoute et de data processing de l'arduino MEGA
+        # on démarre le thread associé
         arduino_sensors = arduino_ultrasonics(ard_sensors)
         arduino_sensors.start()
 
 
-        # on ouvre le port d'écoute de l'arduino UNO qui écoute le lotus
-        ard_capacitor = serial.Serial('/dev/ttyACM0', 115200)
+        # on ouvre le port d'écoute de l'arduino MEGA qui écoute le lotus
+        ard_capacitor = serial.Serial(MEGA_CAPACITOR, 115200)
         # ard_capacitor = "coucou"
 
-        # on démarre le thread d'écoute et de data processing de l'arduino NANO
+        # on démarre le thread associé
         arduino_capacitor = daemon_capacitor(ard_capacitor)
         arduino_capacitor.start()
 
 
 
-        # on temporise le temps que le thread MEGA démarre et recoive ses premières données
+        # on temporise le temps que les thread démarrent et recoivent leurs premières données
         sleep(1)
 
         # on ouvre le port d'écoute de l'arduino UNO-DMX
-        ard_dmx = serial.Serial('/dev/ttyACM1', 115200)
+        ard_dmx = serial.Serial(UNO_DMX, 115200)
         # ard_dmx = "coucou"
 
-        # on démarre le thread qui gère l'arduino UNO DMX
+        # on démarre le thread associé
         try:
             arduino_senders = outputs_arduinos(ard_dmx, arduino_sensors, arduino_capacitor)
             arduino_senders.start()
         except:
-            print("impossibles de démarrer l'arduino senders")
+            print("impossibles de démarrer l'Arduino DMX")
 
     except:
-        print 'problème d\'INIT'
+        print 'problème d\'INIT des threads'
         print exc_info()
         print exc_info()[-1].tb_lineno
         pass
@@ -248,12 +272,14 @@ if __name__ == '__main__':
 
 
 
-    print('THE END.')
     # on arrête "proprement" les thread
     arduino_senders._Thread__stop()
     arduino_capacitor._Thread__stop()
     arduino_sensors._Thread__stop()
+    
     # on ferme "proprement" les ports d'écoute des serial arduino
     ard_dmx.close()
     ard_capacitor.close()
-    # ard_sensors.close()
+    ard_sensors.close()
+    
+    print('THE END.')
