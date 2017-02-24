@@ -46,6 +46,12 @@ def pos_callback(event, player):
         sys.stdout.flush()
 
 
+
+
+
+
+
+
 ### CONSTRUCTION DES INSTANCES SONORES
 
 ### le battement de coeur
@@ -59,58 +65,7 @@ except (AttributeError, NameError) as e:
                                            sys.argv[0], __version__,
                                            libvlc_get_version()))
     sys.exit(1)
-player = instance.media_player_new()
-
-
-### séquence des sirènes
-filename2 = os.path.expanduser("data/audio/sequences/2_sirenes_1222.wav")
-instance2 = Instance(["--sub-source=marq"] + sys.argv[1:])
-try:
-    media2 = instance2.media_new(filename2)
-except (AttributeError, NameError) as e:
-    print('%s: %s (%s %s vs LibVLC %s)' % (e.__class__.__name__, e,
-                                           sys.argv[0], __version__,
-                                           libvlc_get_version()))
-    sys.exit(1)
-player2 = instance2.media_player_new()
-
-
-### la cloche de début
-filename3 = os.path.expanduser("data/audio/bell2.mp3")
-instance3 = Instance(["--sub-source=marq"] + sys.argv[1:])
-try:
-    media3 = instance3.media_new(filename3)
-except (AttributeError, NameError) as e:
-    print('%s: %s (%s %s vs LibVLC %s)' % (e.__class__.__name__, e,
-                                           sys.argv[0], __version__,
-                                           libvlc_get_version()))
-    sys.exit(1)
-player3 = instance3.media_player_new()
-
-
-### sequence initiale
-filename4 = os.path.expanduser("data/audio/naaru.mp3")
-instance4 = Instance(["--sub-source=marq"] + sys.argv[1:])
-try:
-    media4 = instance4.media_new(filename4)
-except (AttributeError, NameError) as e:
-    print('%s: %s (%s %s vs LibVLC %s)' % (e.__class__.__name__, e,
-                                           sys.argv[0], __version__,
-                                           libvlc_get_version()))
-    sys.exit(1)
-player4 = instance4.media_player_new()
-
-
-
-def audio_intro(ref_thread_events):
-    print("AUDIO: début séquence CAVERNE")
-    # player.stop()
-    # player2.stop()
-    # player3.stop()
-    # player4.stop()
-    player4.audio_set_volume(100)
-    player4.set_media(media4)
-    player4.play()
+player_battement = instance.media_player_new()
 
 
 def audio_battement(level, ref_thread_events):
@@ -128,9 +83,24 @@ def audio_battement(level, ref_thread_events):
     # elif ref_thread_events.state['intro']:
     #     ref_thread_events.state['intro'] = False
     else:
-        player.audio_set_volume(100)
-        player.set_media(media)
-        player.play()
+        player_battement.audio_set_volume(100)
+        player_battement.set_media(media)
+        player_battement.play()
+
+
+
+
+### séquence des sirènes
+filename2 = os.path.expanduser("data/audio/sequences/2_sirenes_1222.wav")
+instance2 = Instance(["--sub-source=marq"] + sys.argv[1:])
+try:
+    media2 = instance2.media_new(filename2)
+except (AttributeError, NameError) as e:
+    print('%s: %s (%s %s vs LibVLC %s)' % (e.__class__.__name__, e,
+                                           sys.argv[0], __version__,
+                                           libvlc_get_version()))
+    sys.exit(1)
+player2 = instance2.media_player_new()
 
 
 def audio_sequence(ref_thread_events):
@@ -146,6 +116,21 @@ def audio_sequence(ref_thread_events):
 
 
 
+
+### la cloche de début
+filename3 = os.path.expanduser("data/audio/bell2.mp3")
+instance3 = Instance(["--sub-source=marq"] + sys.argv[1:])
+try:
+    media3 = instance3.media_new(filename3)
+except (AttributeError, NameError) as e:
+    print('%s: %s (%s %s vs LibVLC %s)' % (e.__class__.__name__, e,
+                                           sys.argv[0], __version__,
+                                           libvlc_get_version()))
+    sys.exit(1)
+player3 = instance3.media_player_new()
+
+
+
 def audio_bell():
     player3.audio_set_volume(100)
     player3.set_media(media3)
@@ -154,18 +139,40 @@ def audio_bell():
 
 
 
+### sequence initiale
+filename4 = os.path.expanduser("/media/media/Abelum/Lotus/code/data/audio/intro/Those_Were_Good_Times.mp3")
+instance4 = Instance(["--sub-source=marq"] + sys.argv[1:])
+try:
+    media4 = instance4.media_new(filename4)
+except (AttributeError, NameError) as e:
+    print('%s: %s (%s %s vs LibVLC %s)' % (e.__class__.__name__, e,
+                                           sys.argv[0], __version__,
+                                           libvlc_get_version()))
+    sys.exit(1)
+player4 = instance4.media_player_new()
+
+
+
+def audio_intro(ref_thread_events):
+    print("AUDIO: début séquence CAVERNE")
+    player4.audio_set_volume(50)
+    player4.set_media(media4)
+    player4.play()
+
+
+
+
+
+
+
 
 def audio_stop(var):
-    """
-    ToDo: rajouter la prise en charge du numéro de player.
-
-    """
     if var=="sequence":
         player2.stop()
 
     else:
-        player.stop()
-        player.audio_set_volume(0)
+        player_battement.stop()
+        player_battement.audio_set_volume(0)
 
 
 
@@ -185,6 +192,6 @@ if __name__ == '__main__':
     # player2.set_media(media2)
     # player2.play()
 
-    event_manager = player.event_manager()
-    event_manager.event_attach(EventType.MediaPlayerEndReached,      end_callback)
-    event_manager.event_attach(EventType.MediaPlayerPositionChanged, pos_callback, player)
+    # event_manager = player_battement.event_manager()
+    # event_manager.event_attach(EventType.MediaPlayerEndReached,      end_callback)
+    # event_manager.event_attach(EventType.MediaPlayerPositionChanged, pos_callback, player_battement)

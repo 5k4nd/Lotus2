@@ -126,8 +126,8 @@ class Thread_Ultrasonics(Thread):
         Thread.__init__(self)
         self.arduino_ultrasonics = arduino_ultrasonics
         self.data = {
-            'standard_distance': 270,   # on considère que le mur face aux capteurs est à 1 mètre
-            'capt1': [270]*4,           # on stocke sur la durée pour résister aux fluctuations d'erreurs électriques
+            'standard_distance': 70,   # on considère que le mur face aux capteurs est à 1 mètre
+            'capt1': [70]*4,           # on stocke sur la durée pour résister aux fluctuations d'erreurs électriques
         }
         self.visitors_detected = False
 
@@ -145,9 +145,12 @@ class Thread_Ultrasonics(Thread):
                     self.data['capt1'].pop()
                     tmp = int(got_ultrasonics['capt1'])
                     self.data['capt1'].insert(0, tmp)
-                    print tmp
+                    # print tmp
 
                 distance_delta = 20
+
+                if (tmp < self.data['standard_distance'] - distance_delta):
+                    print("MAIN: variation capteurs de distance %s centimètres" % tmp)
 
                 # on teste toutes les dernières valeurs pour décider de la présence de gens ou non
                 if all(
@@ -234,11 +237,6 @@ class Thread_Events(Thread):
                 print exc_info()
                 print exc_info()[-1].tb_lineno
                 pass
-
-        # ne pas toucher, c'est pour VLC !
-        event_manager = player.event_manager()
-        event_manager.event_attach(EventType.MediaPlayerEndReached,      end_callback)
-        event_manager.event_attach(EventType.MediaPlayerPositionChanged, pos_callback, player)
 
 
 

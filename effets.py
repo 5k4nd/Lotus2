@@ -142,27 +142,17 @@ class Effets():
 
     def battement_de_coeur(self, dmx, ref_thread_events):
         """
-        battement de coeur en fonction de la distance, comprise sur [1, 239].
-        on divise par 210 pour obtenir un pas de 30cm, soit 7 niveaux en tout.
-
-        La fonction appelle respectivement les fonctions de lumières (DMX) et de son (VLC)
+            battement de coeur lorsque des visiteurs sont entrés.
+            - level 1 lorsqu'ils sont loins
+            - level 2 lorsqu'ils sont proches
 
         """
 
 
         
         duree_bat = 0.5
-        #distance = self.arduino_ultrasonics.data['capt1']  # remplacer par un truc pertinent !
-        distance = 150  # pour les tests
+        level = 1
 
-        # si jamais on a plus de 239 cm on gère pas, donc on ramène à du connu
-        if distance > 239:
-            distance = 239
-        level = int(distance/30) + 1
-        level = 8
-
-        # son
-        # print("EFFET: battement niveau %s" % level)
         audio_battement(level=level, ref_thread_events=ref_thread_events)
 
         # lumière
@@ -170,48 +160,38 @@ class Effets():
         #g4 = gevent.spawn(dmx.send_serial, self.arduino_dmx, 0.03)
         #gevent.joinall([g1])
         #g4.kill()
-        G=[]
-        F = gevent.spawn(dmx.constant, PAR_1000, 50)
+        
+        g_par_1000 = gevent.spawn(dmx.constant, PAR_1000, 50)
+        
+
         H = gevent.spawn(dmx.constant, BANDEAU_LED.g, 150)
         SS = gevent.spawn(dmx.send_serial, self.arduino_dmx, 0.02)
+        
+        G=[]
         G.extend( dmx.multi(0, dmx.battement, [2, 7,12 ,17], duree_bat, 0, 255, 4))
         fin = 0
         while (len(gevent.joinall(G, timeout=0)) != len(G)) and (fin == 0):
             # print self.arduino_lotus.must_start_sequence
             #print(len( gevent.joinall(G, timeout=0)))
             if (self.arduino_lotus.must_start_sequence == True):
-                # print("boucle 1:")
                 # print(self.arduino_lotus.must_start_sequence)
                 fin = 1
 
-        #gevent.joinall(G)
 
-        # gestion des palliers
+
         if level==1:
-            sleep(.2)
-        elif level==2:
-            sleep(.3)
-        elif level==3:
-            sleep(.4)
-        elif level==4:
-            sleep(.5)
-        elif level==5:
-            sleep(.7)
-        elif level==6:
-            sleep(.9)
-        elif level==7:
-            sleep(1.1)
-        elif level==8:
             tic = time()
             while (time() - tic < 1.3) and (self.arduino_lotus.must_start_sequence == False):
                 # print("seconde boucle")
-                # sleep(.001)
+                sleep(.001)
                 foo = 42
-                # print("boucle 2:")
                 # print(self.arduino_lotus.must_start_sequence)
 
+        elif level==2:
+            sleep(.2)
 
-        F.kill()
+
+        g_par_1000.kill()
         H.kill()
         dmx.valeur([2, 7, 12, 17, PAR_1000], [0,0,0,0,0])
         SS.kill()
@@ -219,4 +199,4 @@ class Effets():
 
     def sequence_intro_caverne(self, dmx, ref_thread_events):
         audio_intro(ref_thread_events=ref_thread_events)
-        sleep(10)
+        sleep(5)
