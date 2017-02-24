@@ -4,8 +4,8 @@ import gevent
 #from gevent import getcurrent
 from gevent.pool import Group
 from gevent.event import AsyncResult
-from time import sleep
-import time
+from time import sleep, time
+
 from math import *
 from data.materiel import *
 
@@ -42,15 +42,15 @@ class DMX():
         if val_dep > val_fin :
             valeurs = range(val_dep,val_fin, -pas)
         else : valeurs = range(val_dep, val_fin, pas)
-        tic = time.time()
+        tic = time()
         while 1:
             for i in valeurs:
                 trame[canal][t] =  i
-                if (time.time() - tic > timeout) : return 0
+                if (time() - tic > timeout) : return 0
                 gevent.sleep(pause)
             for i in reversed(valeurs):
                 trame[canal][t] =  i
-                if (time.time() - tic > timeout) : return 0
+                if (time() - tic > timeout) : return 0
                 gevent.sleep(pause)
 
     def interruption(self, canaux, val):
@@ -93,14 +93,14 @@ class DMX():
     def strobe(self, canaux, duree, val_bas, val_haut,freq, t=0):
         global trame
         pause = 1/float(freq)
-        tic = time.time()
+        tic = time()
         while 1:
             for i in canaux:
                 trame[i][t] = val_haut
             gevent.sleep(pause)
             for i in canaux:
                 trame[i][t] = val_bas
-            if (time.time() - tic > duree) : 
+            if (time() - tic > duree) : 
                 for i in canaux:
                     trame[i][t] = 0
                 return 0
@@ -160,8 +160,8 @@ class DMX():
         return g
 
     def boucle_timeout(self, duree, fonction, *args):
-        tic = time.time()
-        while (time.time() - tic < duree):
+        tic = time()
+        while (time() - tic < duree):
             fonction(*args)
 
 
@@ -170,7 +170,7 @@ class DMX():
             fonction(*args)
 
     #fonction appelée régulièrement pour créer et envoyer une nouvelle trame dmx via le port série
-    def send_serial(self, ard_dmx, pause):
+    def send_serial(self, arduino_dmx, pause):
         global trame, interrup, trame1
         while 1:
 
@@ -184,7 +184,7 @@ class DMX():
                 else :
                     e = trame[i][0]
                 trame_envoi = trame_envoi + str(i) + "c" + str(e) + "w"
-            ard_dmx.write(trame_envoi)
+            arduino_dmx.write(trame_envoi)
             gevent.sleep(pause)
 
     def battement(self, canal, duree, val_dep, val_fin, pas, t = 0):
@@ -219,8 +219,8 @@ class DMX():
     def attente(self, duree, capteur):
         pause = 0.1
         fin = 0
-        tic = time.time()
-        while (time.time() - tic < duree) and (capteur == false):
+        tic = time()
+        while (time() - tic < duree) and (capteur == false):
             gevent.sleep(0.1)
 
     # def battement_de_coeur(self):
@@ -232,7 +232,7 @@ class DMX():
 
     #     """
     #     dmx = DMX()
-    #     distance = self.ard_sensors.data['capt1']  # remplacer par un truc pertinent !
+    #     distance = self.arduino_ultrasonics.data['capt1']  # remplacer par un truc pertinent !
     #     # distance = 9  # pour les tests
 
     #     # si jamais on a plus de 239 cm on gère pas, donc on ramène à du connu
@@ -246,7 +246,7 @@ class DMX():
 
     #     # lumière
     #     # g1 = gevent.spawn(dmx.battement, canal=2, duree=.8, val_dep=0, val_fin=255)
-    #     # g4 = gevent.spawn(dmx.send_serial, self.ard_dmx, 0.03)
+    #     # g4 = gevent.spawn(dmx.send_serial, self.arduino_dmx, 0.03)
     #     gevent.joinall([g1])
     #     g4.kill()
 

@@ -16,7 +16,7 @@ IMPORTANT :
 
 ToDo:
     - VLC: régler le volume. actuellement c'est n'imp, audio_set_volume n'a AUCUN effet !!
-    - ULTRASONICS: faire un algo de traitement et de fiabilité des capteurs
+    - ULTRASONICS: faire un algo de traitement et de fiabilisation de la donnée de distance (redondance, moyenne, valeurs aberrantes ?)
     - SCÉNO: éclairer le lotus de telle sorte que ça fasse des ombres
 """
 
@@ -29,37 +29,35 @@ MEGA_CAPACITOR      = "/dev/ttyUSB0"    # capacitif branché sur le lotus    à 
 ###############################################################################
 
 
-
-import time
+import serial
+import ast  # pour les cast de str vers dict
 
 from threading import Thread
-from time import sleep
-import serial
-import math
-from json import loads
-
-from pygame import mixer
-
-
+from time import sleep, time
 from sys import exc_info
-import ast  # pour les cast de str vers dict
 
 from dmx_functions import DMX
 from effets import Effets
-from audio_functions import audio_bell
+from audio_functions import audio_bell, audio_stop
 
-import time
 
-class daemon_capacitor(Thread):
+# import math
+# from json import loads
+# import time
+# from pygame import mixer
+
+
+
+class Thread_Lotus(Thread):
     """
         thread de l'arduino MEGA du capacitif branché sur le lotus
             > le capacitif sur la mega du lotus se branche sur le pin PWM 8
 
 
     """
-    def __init__(self, ard_capacitor):
+    def __init__(self, arduino_lotus):
         Thread.__init__(self)
-        self.ard_capacitor = ard_capacitor  # capteur capacitif du lotus
+        self.arduino_lotus = arduino_lotus
         self.data = {
             'capacitor_ground': -1,
             'capacitor_value': -1
@@ -77,26 +75,26 @@ class daemon_capacitor(Thread):
         while 1:
             sleep(.01)
             try:
-                ### LISTEN FROM ARD_CAPACITOR (capacitif Lotus)
-                got = self.ard_capacitor.readline()
-                got = got.replace(" ", "")  # remove blanks
-                got = ast.literal_eval(got)  # cast str to dict
+                ## on écoute le capacitif du lotus
+                got_lotus = self.arduino_lotus.readline()
+                got_lotus = got_lotus.replace(" ", "")   # remove blanks
+                got_lotus = ast.literal_eval(got_lotus)  # cast str to dict
                 
 
-                if "capa" in got.keys():
-                    # on ignore les 0.
-                    if (int(got['capa']) == 0):
+                if "capa" in got_lotus.keys():
+                    # on ignore les 0
+                    if (int(got_lotus['capa']) == 0):
                         pass
                     else:
                         # on initialise le ground si ça n'a pas été déjà fait
                         if (self.data['capacitor_ground'] == -1):
-                            self.data['capacitor_ground'] = int(got['capa'])
+                            self.data['capacitor_ground'] = int(got_lotus['capa'])
                             print('[INFO] ground capacitif initialisé à %s' % self.data['capacitor_ground'])
 
-                        self.data['capacitor_value'] = int(got['capa'])
+                        self.data['capacitor_value'] = int(got_lotus['capa'])
                         # print self.data['capacitor_value']
 
-                # si le capteur est touché, disons valeur ded pin_ground + delta
+                # si le capteur est touché, càd valeur ded pin_ground + delta
                 delta = 2
                 # note : baisser delta pour plus de réactivité, l'augmenter si le lotus se déclenche tout seul ! :-)
                 if (self.data['capacitor_value'] > (self.data['capacitor_ground'] + delta)):
@@ -105,58 +103,66 @@ class daemon_capacitor(Thread):
                     self.must_start_effet = True
 
                     # on vide le buffer
-                    tic = time.time()
-                    while (time.time() - tic < 1):
-                        self.ard_capacitor.readline()
+                    tic = time()
+                    while (time() - tic < 1):
+                        self.arduino_lotus.readline()
                 else:
                     self.must_start_sequence = False
-                # print ("CAPACITOR %s" % self.must_start_sequence)
 
 
             except:
-                #quelle que soit l'erreur (formatage des donnees, valeurs aberrantes, etc.) on passe
+                # quelle que soit l'erreur (formatage des donnees, valeurs aberrantes, etc.) on passe
                 pass
 
 
-class arduino_ultrasonics(Thread):
+class Thread_Ultrasonics(Thread):
     """
         thread de l'arduino des capteurs de distance (MEGA)
 
         actuellement je n'utilise qu'un capteur sur deux et je base tout dessus.
 
     """
-    def __init__(self, ard_sensors):
+    def __init__(self, arduino_ultrasonics):
         Thread.__init__(self)
-        self.ard_sensors = ard_sensors  # capteurs de ditance (ultrasonic sensors)
+        self.arduino_ultrasonics = arduino_ultrasonics
         self.data = {
-            'standard_distance': 100,   # on considère que le mur face aux capteurs est à 1 mètre
-            'capt1': [200]*5,           # on stocke sur la durée pour résister aux fluctuations d'erreurs électriques
+            'standard_distance': 270,   # on considère que le mur face aux capteurs est à 1 mètre
+            'capt1': [270]*4,           # on stocke sur la durée pour résister aux fluctuations d'erreurs électriques
         }
         self.visitors_detected = False
 
 
     def run(self):
         while 1:
-            sleep(.01)
+            sleep(.001)
             try:
-                got2 = self.ard_sensors.readline()
-                got2 = got2.replace(" ", "")  # remove blanks
-                got2 = ast.literal_eval(got2)  # cast str to dict
+                got_ultrasonics = self.arduino_ultrasonics.readline()
+                got_ultrasonics = got_ultrasonics.replace(" ", "")  # remove blanks
+                got_ultrasonics = ast.literal_eval(got_ultrasonics)  # cast str to dict
 
 
-                if "capt1" in got2.keys():
-                    self.data['capt1'] = int(got2['capt1'])
-                if "capt2" in got2.keys():
-                    self.data['capt2'] = int(got2['capt2'])
+                if "capt1" in got_ultrasonics.keys():
+                    self.data['capt1'].pop()
+                    tmp = int(got_ultrasonics['capt1'])
+                    self.data['capt1'].insert(0, tmp)
+                    print tmp
 
                 distance_delta = 20
-                if (self.data['capt1'] < (self.data['standard_distance'] - distance_delta)):
-                    print("capteurs de distance traversés à %s mètres" % self.data['capt1'])
+
+                # on teste toutes les dernières valeurs pour décider de la présence de gens ou non
+                if all(
+                    item < ( (self.data['standard_distance'] - distance_delta) )
+                    for
+                        item
+                    in
+                        self.data['capt1']):
+                    print("VISITORS DETECTED")
                     self.visitors_detected = True
 
-                else:
-                    self.visitors_detected = False
 
+
+                # if "capt2" in got_ultrasonics.keys():
+                #     self.data['capt2'] = int(got_ultrasonics['capt2'])
 
 
             except:
@@ -165,44 +171,63 @@ class arduino_ultrasonics(Thread):
 
 
 
-class outputs_arduinos(Thread):
+class Thread_Events(Thread):
     """
-        thread qui gère le déclenchement des évènements de la classe EFFETS
+        thread qui gère le déclenchement des évènements de la classe EFFETS.
+
+        Note : le lotus doit être agressé (battements de coeur) pour lancer la séquence.
     """
-    def __init__(self, ref_ard_dmx, arduino_sensors, arduino_capacitor):
+
+    def __init__(self, ref_arduino_dmx, thread_ultrasonics, thread_lotus):
         Thread.__init__(self)
-        self.ard_dmx = ref_ard_dmx
-        self.arduino_sensors = arduino_sensors
-        self.ard_capacitor = arduino_capacitor
+        self.arduino_dmx = ref_arduino_dmx
+        self.thread_ultrasonics = thread_ultrasonics
+        self.thread_lotus = thread_lotus
 
-        # variable nécessaire dans audio_functions.py pour baisser proprement le volume si on sort de la séquence inopinément
+        # la variable self.state['sequence'] est nécessaire dans audio_functions.py pour baisser proprement le volume si on sort de la séquence inopinément
         # par exemple si le lighteux te fait finir la séquence alors que la musique est pas finie (sic).
-        #  voir la méthode audio_battement() pour plus de détails
-        self.GLOBAL_STATE_SEQUENCE = True
+        # voir la méthode audio_battement() pour plus de détails
+        self.state = {
+            'intro': True,
+            'battement': False,
+            'sequence': False
+        }
+        self.dmx = DMX()
+        self.effets = Effets(self.arduino_dmx, self.thread_ultrasonics, self.thread_lotus)
 
-        """try:
-            # mixer.init()
-        except:
-            print '(AUDIO) sound init error'
-            print exc_info()"""
 
     def run(self):
         """
-        attention cette boucle contient des opérations bloquantes. ne pas y
-        placer d'opérations périodiques.
+            ATTENTION cette boucle contient des opérations bloquantes
+            DONC attention ne pas y placer d'opérations périodiques !
         """
         while 1:
             sleep(.01)
-            effet = Effets(self.ard_dmx, self.arduino_sensors, self.ard_capacitor)
 
             try:
-                dmx = DMX()
-                effet.battement_de_coeur(dmx, ref_thread_outputs_arduino=self)
+                ## BATTEMENT
+                if self.thread_ultrasonics.visitors_detected or self.state['battement']:
+                    self.state['battement'] = True
+                    self.state['intro'] = False
+                    print("MAIN: start battement")
+                    self.effets.battement_de_coeur(self.dmx, ref_thread_events=self)
+                
+                    ## SEQUENCE
+                    if self.thread_lotus.must_start_sequence:
+                        self.state['battement'] = False
+                        self.state['sequence'] = True
+                        print("MAIN: start sequence")
+                        self.effets.sequence(ref_thread_events=self)
 
-                if self.ard_capacitor.must_start_sequence:
-                    print("MAIN: start sequence")
-                    effet.sequence(ref_thread_outputs_arduino=self)
-                    # effet.sequence_stop()
+                        print("MAIN: on reset le visitors_detected à FALSE")
+                        self.thread_ultrasonics.visitors_detected = False
+                        audio_stop("sequence")
+
+                else:
+                    # INTRO (sur des périodes de 10 secondes)
+                    print("MAIN: start intro")
+                    self.effets.sequence_intro_caverne(self.dmx, ref_thread_events=self)
+
 
 
             except exc_info():
@@ -220,45 +245,45 @@ class outputs_arduinos(Thread):
 
 if __name__ == '__main__':
     try:
-        # on attend que le personnel de l'expo branche les trucs. on leur laisse 10 secondes << À CHANGER EN 1 MINUTE !!
-        #audio_bell()
-        #sleep(1)
+        # signal spécifiant que le système est démarré et sera opérationnel d'ici quelques secondes
+        # audio_bell()
+        # sleep(1)
 
-        # on ouvre le port d'écoute de l'arduino MEGA qui écoute les 8 ultrasons
-        ard_sensors = serial.Serial(MEGA_ULTRASONICS, 115200)
-        # ard_sensors = "coucou"
+        # on ouvre le port d'écoute de l'arduino MEGA qui écoute les 2 ultrasons de détection de passage
+        arduino_ultrasonics = serial.Serial(MEGA_ULTRASONICS, 115200)
+        # arduino_ultrasonics = "foobar"
 
         # on démarre le thread associé
-        arduino_sensors = arduino_ultrasonics(ard_sensors)
-        arduino_sensors.start()
+        thread_ultrasonics = Thread_Ultrasonics(arduino_ultrasonics)
+        thread_ultrasonics.start()
 
 
         # on ouvre le port d'écoute de l'arduino MEGA qui écoute le lotus
-        ard_capacitor = serial.Serial(MEGA_CAPACITOR, 115200)
-        # ard_capacitor = "coucou"
+        arduino_lotus = serial.Serial(MEGA_CAPACITOR, 115200)
+        # arduino_lotus = "foobar"
 
         # on démarre le thread associé
-        arduino_capacitor = daemon_capacitor(ard_capacitor)
-        arduino_capacitor.start()
+        thread_lotus = Thread_Lotus(arduino_lotus)
+        thread_lotus.start()
 
 
 
-        # on temporise le temps que les thread démarrent et recoivent leurs premières données
+        # on temporise le temps que les threads démarrent et recoivent leurs premières données
         sleep(1)
 
         # on ouvre le port d'écoute de l'arduino UNO-DMX
-        ard_dmx = serial.Serial(UNO_DMX, 115200)
-        # ard_dmx = "coucou"
+        arduino_dmx = serial.Serial(UNO_DMX, 115200)
+        # arduino_dmx = "foobar"
 
         # on démarre le thread associé
         try:
-            arduino_senders = outputs_arduinos(ard_dmx, arduino_sensors, arduino_capacitor)
-            arduino_senders.start()
+            thread_events = Thread_Events(arduino_dmx, thread_ultrasonics, thread_lotus)
+            thread_events.start()
         except:
-            print("impossibles de démarrer l'Arduino DMX")
+            print("MAIN: impossibles de démarrer l'Arduino DMX")
 
     except:
-        print 'problème d\'INIT des threads'
+        print 'MAIN: problème d\'INIT des threads'
         print exc_info()
         print exc_info()[-1].tb_lineno
         pass
@@ -272,14 +297,14 @@ if __name__ == '__main__':
 
 
 
-    # on arrête "proprement" les thread
-    arduino_senders._Thread__stop()
-    arduino_capacitor._Thread__stop()
-    arduino_sensors._Thread__stop()
+    # on arrête "proprement" les threads
+    thread_events._Thread__stop()
+    thread_lotus._Thread__stop()
+    thread_ultrasonics._Thread__stop()
     
     # on ferme "proprement" les ports d'écoute des serial arduino
-    ard_dmx.close()
-    ard_capacitor.close()
-    ard_sensors.close()
+    arduino_dmx.close()
+    arduino_lotus.close()
+    arduino_ultrasonics.close()
     
     print('THE END.')

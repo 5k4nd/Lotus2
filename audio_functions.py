@@ -88,34 +88,61 @@ except (AttributeError, NameError) as e:
 player3 = instance3.media_player_new()
 
 
+### sequence initiale
+filename4 = os.path.expanduser("data/audio/naaru.mp3")
+instance4 = Instance(["--sub-source=marq"] + sys.argv[1:])
+try:
+    media4 = instance4.media_new(filename4)
+except (AttributeError, NameError) as e:
+    print('%s: %s (%s %s vs LibVLC %s)' % (e.__class__.__name__, e,
+                                           sys.argv[0], __version__,
+                                           libvlc_get_version()))
+    sys.exit(1)
+player4 = instance4.media_player_new()
 
 
 
-def audio_battement(level, ref_thread_outputs_arduino):
-    if ref_thread_outputs_arduino.GLOBAL_STATE_SEQUENCE:
+def audio_intro(ref_thread_events):
+    print("AUDIO: début séquence CAVERNE")
+    # player.stop()
+    # player2.stop()
+    # player3.stop()
+    # player4.stop()
+    player4.audio_set_volume(100)
+    player4.set_media(media4)
+    player4.play()
+
+
+def audio_battement(level, ref_thread_events):
+    print("AUDIO: début BATTEMENT")
+    ## si on arrive de la séquence on fait une transition en douceur :-)
+    player4.stop()
+    if ref_thread_events.state['sequence']:
         for i in range(100,50,-2):
             # print(i)
             # sleep(.02)
             player2.audio_set_volume(i)
             audio_stop(2)
         player2.audio_set_volume(0)
-        ref_thread_outputs_arduino.GLOBAL_STATE_SEQUENCE = False
+        ref_thread_events.state['sequence'] = False
+    # elif ref_thread_events.state['intro']:
+    #     ref_thread_events.state['intro'] = False
     else:
         player.audio_set_volume(100)
         player.set_media(media)
         player.play()
 
 
-
-def audio_sequence(no, ref_thread_outputs_arduino):
-    ref_thread_outputs_arduino.GLOBAL_STATE_SEQUENCE = True
-    audio_stop(1)
-    if no==2:
-        print("AUDIO: début séquence 2_sirenes")
-        player2.audio_set_volume(0)  # <<<< ???????? ne marche pas !!!
-        player2.set_media(media2)
-        player2.play()
-        player2.audio_set_volume(0)
+def audio_sequence(ref_thread_events):
+    # audio_stop()
+        
+    ref_thread_events.state['sequence'] = True
+    print("AUDIO: début SEQUENCE")
+    # player.audio_set_volume(0)  # <<<< ???????? ne marche pas !!!
+    player2.stop()
+    player2.set_media(media2)
+    player2.play()
+    player2.audio_set_volume(0)
 
 
 
@@ -128,17 +155,17 @@ def audio_bell():
 
 
 
-def audio_stop(player_no):
+def audio_stop(var):
     """
     ToDo: rajouter la prise en charge du numéro de player.
 
     """
-    if player_no==1:
+    if var=="sequence":
+        player2.stop()
+
+    else:
         player.stop()
         player.audio_set_volume(0)
-
-    if player_no==2:
-        player2.stop()
 
 
 
