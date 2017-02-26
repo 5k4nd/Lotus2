@@ -69,23 +69,28 @@ player_battement = instance.media_player_new()
 
 
 def audio_battement(level, ref_thread_events):
+    """
+    c'est le bordel cette méthode, faudrait nettoyer ! :p
+
+    """
+    
     print("AUDIO: début BATTEMENT")
-    ## si on arrive de la séquence on fait une transition en douceur :-)
-    player4.stop()
-    if ref_thread_events.state['sequence']:
-        for i in range(100,50,-2):
-            # print(i)
-            # sleep(.02)
-            player2.audio_set_volume(i)
-            audio_stop(2)
-        player2.audio_set_volume(0)
-        ref_thread_events.state['sequence'] = False
-    # elif ref_thread_events.state['intro']:
-    #     ref_thread_events.state['intro'] = False
-    else:
-        player_battement.audio_set_volume(100)
-        player_battement.set_media(media)
-        player_battement.play()
+    # ## si on arrive de la séquence on fait une transition en douceur :-)
+    # player_intro.stop()
+    # if ref_thread_events.state['sequence']:
+    #     for i in range(100,50,-2):
+    #         # print(i)
+    #         # sleep(.02)
+    #         player_sequence.audio_set_volume(i)
+    #         audio_stop(2)
+    #     player_sequence.audio_set_volume(0)
+    #     ref_thread_events.state['sequence'] = False
+    # # elif ref_thread_events.state['intro']:
+    # #     ref_thread_events.state['intro'] = False
+    # else:
+    player_battement.audio_set_volume(100)
+    player_battement.set_media(media)
+    player_battement.play()
 
 
 
@@ -100,7 +105,7 @@ except (AttributeError, NameError) as e:
                                            sys.argv[0], __version__,
                                            libvlc_get_version()))
     sys.exit(1)
-player2 = instance2.media_player_new()
+player_sequence = instance2.media_player_new()
 
 
 def audio_sequence(ref_thread_events):
@@ -108,11 +113,9 @@ def audio_sequence(ref_thread_events):
         
     ref_thread_events.state['sequence'] = True
     print("AUDIO: début SEQUENCE")
-    # player.audio_set_volume(0)  # <<<< ???????? ne marche pas !!!
-    player2.stop()
-    player2.set_media(media2)
-    player2.play()
-    player2.audio_set_volume(0)
+    player_sequence.audio_set_volume(60)
+    player_sequence.set_media(media2)
+    player_sequence.play()
 
 
 
@@ -149,15 +152,15 @@ except (AttributeError, NameError) as e:
                                            sys.argv[0], __version__,
                                            libvlc_get_version()))
     sys.exit(1)
-player4 = instance4.media_player_new()
+player_intro = instance4.media_player_new()
 
 
 
 def audio_intro(ref_thread_events):
     print("AUDIO: début séquence CAVERNE")
-    player4.audio_set_volume(50)
-    player4.set_media(media4)
-    player4.play()
+    player_intro.audio_set_volume(50)
+    player_intro.set_media(media4)
+    player_intro.play()
 
 
 
@@ -168,8 +171,9 @@ def audio_intro(ref_thread_events):
 
 def audio_stop(var):
     if var=="sequence":
-        player2.stop()
-
+        player_sequence.stop()
+    elif var=="intro":
+        player_intro.stop()
     else:
         player_battement.stop()
         player_battement.audio_set_volume(0)
@@ -179,18 +183,18 @@ def audio_stop(var):
 if __name__ == '__main__':
 
     sleep(1)
-    player2.set_media(media2)
-    player2.play()
+    player_sequence.set_media(media2)
+    player_sequence.play()
     # print import pprin
-    print(dir(player2))
+    print(dir(player_sequence))
     raw_input()
-    player2.audio_set_volume(0)
+    player_sequence.audio_set_volume(0)
     raw_input()
-    player2.audio_set_volume(100)
+    player_sequence.audio_set_volume(100)
     raw_input()
     # sleep(1.2)
-    # player2.set_media(media2)
-    # player2.play()
+    # player_sequence.set_media(media2)
+    # player_sequence.play()
 
     # event_manager = player_battement.event_manager()
     # event_manager.event_attach(EventType.MediaPlayerEndReached,      end_callback)

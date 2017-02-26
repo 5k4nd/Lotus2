@@ -16,11 +16,16 @@ class PARLED():
         self.g = adresse + 2
         self.b = adresse + 3
 
-class BANDEAU_LED():
+
+class RGB():
     def __init__(self, adresse):
         self.r = adresse
         self.g = adresse + 1
         self.b = adresse + 2
+        self.all = [self.r, self.g, self.b]
+
+    def __repr__(self):
+        return int(str(self.r))
 
 
 PARLED_1 = PARLED(adresse=1)
@@ -29,8 +34,10 @@ PARLED_3 = PARLED(adresse=11)
 PARLED_4 = PARLED(adresse=16)
 
 
-BANDEAU_LED = BANDEAU_LED(adresse=21)
+BANDEAU_LED = RGB(adresse=21)
 
 PAR_1000 = 24
 
 
+if __name__ == '__main__':
+    print (type(BANDEAU_LED))

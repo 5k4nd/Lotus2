@@ -15,7 +15,6 @@ IMPORTANT :
 
 
 ToDo:
-    - VLC: régler le volume. actuellement c'est n'imp, audio_set_volume n'a AUCUN effet !!
     - ULTRASONICS: faire un algo de traitement et de fiabilisation de la donnée de distance (redondance, moyenne, valeurs aberrantes ?)
     - SCÉNO: éclairer le lotus de telle sorte que ça fasse des ombres
 """
@@ -126,8 +125,8 @@ class Thread_Ultrasonics(Thread):
         Thread.__init__(self)
         self.arduino_ultrasonics = arduino_ultrasonics
         self.data = {
-            'standard_distance': 70,   # on considère que le mur face aux capteurs est à 1 mètre
-            'capt1': [70]*4,           # on stocke sur la durée pour résister aux fluctuations d'erreurs électriques
+            'standard_distance': 120,   # on considère que le mur face aux capteurs est à 1 mètre
+            'capt1': [120]*4,           # on stocke sur la durée pour résister aux fluctuations d'erreurs électriques
         }
         self.visitors_detected = False
 
@@ -210,6 +209,7 @@ class Thread_Events(Thread):
             try:
                 ## BATTEMENT
                 if self.thread_ultrasonics.visitors_detected or self.state['battement']:
+                # if 0 or self.state['battement']:
                     self.state['battement'] = True
                     self.state['intro'] = False
                     print("MAIN: start battement")
@@ -227,7 +227,7 @@ class Thread_Events(Thread):
                         audio_stop("sequence")
 
                 else:
-                    # INTRO (sur des périodes de 10 secondes)
+                    ## INTRO
                     print("MAIN: start intro")
                     self.effets.sequence_intro_caverne(self.dmx, ref_thread_events=self)
 
