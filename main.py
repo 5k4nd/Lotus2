@@ -209,14 +209,13 @@ class Thread_Events(Thread):
             try:
                 ## BATTEMENT
                 if self.thread_ultrasonics.visitors_detected or self.state['battement']:
-                # if 0 or self.state['battement']:
                     self.state['battement'] = True
                     self.state['intro'] = False
                     print("MAIN: start battement")
                     self.effets.battement_de_coeur(self.dmx, ref_thread_events=self)
                 
                     ## SEQUENCE
-                    if self.thread_lotus.must_start_sequence:
+                    if self.thread_lotus.must_start_sequence or 1:
                         self.state['battement'] = False
                         self.state['sequence'] = True
                         print("MAIN: start sequence")
@@ -224,7 +223,6 @@ class Thread_Events(Thread):
 
                         print("MAIN: on reset le visitors_detected à FALSE")
                         self.thread_ultrasonics.visitors_detected = False
-                        audio_stop("sequence")
 
                 else:
                     ## INTRO
@@ -248,8 +246,8 @@ if __name__ == '__main__':
         # sleep(1)
 
         # on ouvre le port d'écoute de l'arduino MEGA qui écoute les 2 ultrasons de détection de passage
-        arduino_ultrasonics = serial.Serial(MEGA_ULTRASONICS, 115200)
-        # arduino_ultrasonics = "foobar"
+        # arduino_ultrasonics = serial.Serial(MEGA_ULTRASONICS, 115200)
+        arduino_ultrasonics = "foobar"
 
         # on démarre le thread associé
         thread_ultrasonics = Thread_Ultrasonics(arduino_ultrasonics)
@@ -257,8 +255,8 @@ if __name__ == '__main__':
 
 
         # on ouvre le port d'écoute de l'arduino MEGA qui écoute le lotus
-        arduino_lotus = serial.Serial(MEGA_CAPACITOR, 115200)
-        # arduino_lotus = "foobar"
+        # arduino_lotus = serial.Serial(MEGA_CAPACITOR, 115200)
+        arduino_lotus = "foobar"
 
         # on démarre le thread associé
         thread_lotus = Thread_Lotus(arduino_lotus)
