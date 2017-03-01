@@ -3,11 +3,9 @@
 """
 oui ce fichier est crade mais ça marche, et normalement vous devriez pas avoir
 à mettre les mains dedans donc la flem de cleaner :-)
-
 ToDo:
     - corriger le fait que j'ai actuellement une instance par fichier. c'est pratique
         mais franchement : NON, ça se fait pas !
-
 """
 
 from vlc import *
@@ -71,7 +69,6 @@ player_battement = instance.media_player_new()
 def audio_battement(level, ref_thread_events):
     """
     c'est le bordel cette méthode, faudrait nettoyer ! :p
-
     """
     
     print("AUDIO: début BATTEMENT")
@@ -198,4 +195,4 @@ if __name__ == '__main__':
 
     # event_manager = player_battement.event_manager()
     # event_manager.event_attach(EventType.MediaPlayerEndReached,      end_callback)
-    # event_manager.event_attach(EventType.MediaPlayerPositionChanged, pos_callback, player_battement)
+# event_manager.event_attach(EventType.MediaPlayerPositionChanged, pos_callback, player_battement)

@@ -119,7 +119,7 @@ class Effets():
                             INITIALISATION DE LA SÉQUENCE
         ####################################################################
         """
-        # audio_sequence(ref_thread_events)
+        audio_sequence(ref_thread_events)
 
         STARTING_TIME = 0  # used for debugging
         
@@ -127,8 +127,6 @@ class Effets():
         blackout(dmx_frame)
 
         parleds = []
-
-
 
 
         """
