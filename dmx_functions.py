@@ -25,304 +25,342 @@ from math import *
 from data.equipment import *
 
 
-interrup, trame, trame1 = [0]*30, [0]*30, [0]*30
-for i in range(0,len(trame1)):
-    trame[i] = [0]*2
-
-
-
-class DMX():
 
 
 
 
 
-    """########################################################################
-        les méthodes ci-dessous sont des méthodes techniques.
+
+"""########################################################################
+    les méthodes ci-dessous sont des méthodes techniques.
+
+"""
+
+# def send_serial(arduino_dmx, pause, dmx_frame, priority_dmx_frame):
+#     # global dmx_frame, interrup
+#     while 1:
+
+#         nb_canaux = len(dmx_frame)
+#         trame_envoi = ""
+#         for i in range(0, nb_canaux):
+#             # if interrup[i] == 1:
+#             #     e = dmx_frame[i][1]
+#             # elif interrup[i] == 2 :
+#             #     e = max(dmx_frame[i][0], dmx_frame[i][1])
+#             # else :
+#             e = dmx_frame[i][0]
+#             trame_envoi = trame_envoi + str(i) + "c" + str(e) + "w"
+#         arduino_dmx.write(trame_envoi)
+#         gevent.sleep(pause)
+
+def send_serial(arduino_dmx, pause, dmx_frame, priority_dmx_frame):
 
     """
+        FONCTION PRINCIPALE 
+            appelée régulièrement pour créer et envoyer une nouvelle trame dmx via le port série.
+            lorsqu'une fonction dmx a besoin d'écraser une fonction en court, il faut utiliser le
+            champ "interrup" à 1 (voire 2, cf le code ci-dessous).
+    """
+    # global dmx_frame, interrup
+    while 1:
+        sleep(.0001)
+        nb_canaux = len(dmx_frame)
+        trame_envoi = ""
+        for i in range(0, nb_canaux):
+            if priority_dmx_frame[i][0] != -1:
+                e = priority_dmx_frame[i][0]
+            else:
+                e = dmx_frame[i][0]
+            trame_envoi = trame_envoi + str(i) + "c" + str(e) + "w"
+        arduino_dmx.write(trame_envoi)
+        gevent.sleep(pause)
 
-    def send_serial(self, arduino_dmx, pause):
-        """
-            FONCTION PRINCIPALE 
-                appelée régulièrement pour créer et envoyer une nouvelle trame dmx via le port série.
-                lorsqu'une fonction dmx a besoin d'écraser une fonction en court, il faut utiliser le
-                champ "interrup" à 1 (voire 2, cf le code ci-dessous).
-        """
-        global trame, interrup, trame1
-        while 1:
 
-            nb_canaux = len(trame)
-            trame_envoi = ""
-            for i in range(0, nb_canaux):
-                if interrup[i] == 1:
-                    e = trame[i][1]
-                elif interrup[i] == 2 :
-                    e = max(trame[i][0], trame[i][1])
-                else :
-                    e = trame[i][0]
-                trame_envoi = trame_envoi + str(i) + "c" + str(e) + "w"
-            arduino_dmx.write(trame_envoi)
+def dmx_high_priority_overrider(priority_dmx_frame, overrided_channels, run):
+    if run:
+        for channel in overrided_channels: priority_dmx_frame[channel][0] = 0
+    else:
+        for channel in overrided_channels: priority_dmx_frame[channel][0] = -1
+
+
+# def fade_up_down(dmx_frame, channel, duration, val_dep, val_fin, pas, t = 0):
+
+#     nb_frames = float(val_fin - val_dep) / pas
+#     # print nb_frames
+#     frame_per_second = ceil( float(nb_frames) / duration )
+#     pause = 1.0 / frame_per_second
+
+#     pause /= 2  # car on a deux boucles
+
+#     values = range(val_dep, val_fin+1, pas)
+#     tic = time()
+#     for idx, value in enumerate(values):
+#         if idx > 1:  # nécessaire pour ne pas faire le dernier sleep
+#             gevent.sleep(pause)
+#             dmx_frame[channel][t] = value
+#     for (idx, i) in enumerate(reversed(values)):
+#         if idx > 1:
+#             gevent.sleep(pause)
+#         dmx_frame[channel][t] =  i
+
+#     if float(time()-tic) > float(duration):
+#         print "EFFET WARNING: fade up down trop long %s au lieu de %s" % (round(time()-tic, 2), duration)
+
+
+
+
+
+
+
+"""
+############################################################################
+                                DMX EFFECTS
+############################################################################
+"""
+
+
+def fade_up(dmx_frame, channel, duration, val_dep, val_fin, pas, t=0):
+
+
+    nb_frames = float(val_fin - val_dep) / pas
+    # print nb_frames
+    frame_per_second = ceil( float(nb_frames) / duration )
+    # print frame_per_second
+    pause = 1.0 / frame_per_second
+    # print pause
+
+    tic = time()
+    for idx, i in enumerate(range(val_dep, val_fin, pas)):
+        if idx > 0:
             gevent.sleep(pause)
-
-
-
-
-    def multi(self, delay, function, channels, *args):
-        """
-            duplique la fonction demandée pour chaque canal passé en paramètre.
-
-        """
-
-        g = [0]*len(channels)
-
-        for idx, channel in enumerate(channels):
-            g[idx] = gevent.spawn_later(delay, function, channel, *args)
-
-        return g
-
-    def boucle(self, iterations, function, *args):
-        """
-            lance la fonction demandée un nombre "iterations" de fois.
-        """
-        for i in range(0, iterations):
-            function(*args)
-
-    def multi_boucle(self, delay, iterations, function, channels, *args):
-        """
-            on duplique la fonciton demandée et on la lance un nombre "iterations" de fois.
-
-        """
-        g = [0]*len(channels)
-        
-        dmx = DMX()
-        for idx, channel in enumerate(channels):
-            g[idx] = gevent.spawn_later(delay, dmx.boucle, iterations, function, channel, *args)
-
-        return g
-
-
-
-    def override(self, channels, value):
-        """
-            cette fonction permet d'ignorer l'effet courant (le premier champ) sur le canal
-            et de prendre en compte le n-ième champ défini par "value".
-        """
-        global interrup
-        for channel in channels:
-            interrup[channel] = value
-
-
-
-
-
-
-
-    """########################################################################
-        les méthodes ci-dessous regroupent les effets lumineux DMX.
-    """
-
-
-
-    def blackout(self, channels=None):
-        """
-            set les canaux passés à 0, par défaut reset LES 512 CANAUX.
-        """
-
-        if channels is None:
-            for i in range(1, len(trame)):
-                trame[i][0] = 0
+        if i + pas > val_fin:  # car range ne permet pas toujours d'aller au bout
+            dmx_frame[channel][t] = val_fin
         else:
-            for i in channels:
-                trame[i][0] = 0
+            dmx_frame[channel][t] = i
+
+    if float(time()-tic) > float(duration):
+        print "EFFET WARNING: fade up down trop long %s au lieu de %s" % (round(time()-tic, 2), duration)
+
+def fade_down(dmx_frame, channels, duration, val_dep, val_fin, pas, t=0):
+
+    nb_frames = float(val_dep - val_fin) / pas
+    # print nb_frames
+    frame_per_second = ceil( float(nb_frames) / duration )
+    # print frame_per_second
+    pause = 1.0 / frame_per_second
+    # print pause
+
+    tic = time()
+    for idx, i in enumerate(range(val_dep, val_fin-1, -pas)):  # attention au -1 pour inclure les bornes de l'intervalle
+        if idx > 0:
+            gevent.sleep(pause)
+        if i - pas < val_fin:  # car range ne permet pas toujours d'aller au bout
+            dmx_frame[channels][t] = val_fin
+        else:
+            dmx_frame[channels][t] = i
+        # print dmx_frame[channels][t]
+
+    if float(time()-tic) > float(duration):
+        print "EFFET WARNING: fade down trop long %s au lieu de %s (channels %s)" % (round(time()-tic, 2), duration, channels)
 
 
+def fade_up_down(dmx_frame, channel, duration, val_dep, val_fin, pas):
+    """
+        j'ai été obligé de mettre des valeurs par défaut aux paramètres duration, val_dep, val_fin et pas mais c'est bullshit.
+    
+    """
+    # print dmx_frame
+    nb_frames = float(val_fin - val_dep) / pas
+    # print nb_frames
+    frame_per_second = ceil( float(nb_frames) / duration )
+    pause = 1.0 / frame_per_second
 
-    def fade_up(self, channels, duree, val_dep, val_fin, pas, t=0):
-        global trame
+    pause /= 2  # car on a deux boucles
 
-        nb_frames = float(val_fin - val_dep) / pas
-        # print nb_frames
-        frame_per_second = ceil( float(nb_frames) / duree )
-        # print frame_per_second
-        pause = 1.0 / frame_per_second
-        # print pause
+    values = range(val_dep, val_fin+1, pas)
+    tic = time()
+    for idx, value in enumerate(values):
+        if idx > 1:  # nécessaire pour ne pas faire le dernier sleep
+            gevent.sleep(pause)
+        dmx_frame[channel][0] = value
+        # print value
+    for idx, value in enumerate(reversed(values)):
+        if idx > 1:
+            gevent.sleep(pause)
+        dmx_frame[channel][0] =  value
+        # print value
 
-        tic = time()
-        for idx, i in enumerate(range(val_dep, val_fin, pas)):
-            if idx > 0:
-                gevent.sleep(pause)
-            if i + pas > val_fin:  # car range ne permet pas toujours d'aller au bout
-                trame[channels][t] = val_fin
-            else:
-                trame[channels][t] = i
-            # print trame[channels][t]
+    if float(time()-tic) > float(duration):
+        print "EFFET WARNING: fade up down trop long %s au lieu de %s" % (round(time()-tic, 2), duration)
 
-        if float(time()-tic) > float(duree):
-            print "EFFET WARNING: fade up down trop long %s au lieu de %s" % (round(time()-tic, 2), duree)
-
-    def fade_down(self, channels, duree, val_dep, val_fin, pas, t=0):
-        global trame
-
-        nb_frames = float(val_dep - val_fin) / pas
-        # print nb_frames
-        frame_per_second = ceil( float(nb_frames) / duree )
-        # print frame_per_second
-        pause = 1.0 / frame_per_second
-        # print pause
-
-        tic = time()
-        for idx, i in enumerate(range(val_dep, val_fin-1, -pas)):  # attention au -1 pour inclure les bornes de l'intervalle
-            if idx > 0:
-                gevent.sleep(pause)
-            if i - pas < val_fin:  # car range ne permet pas toujours d'aller au bout
-                trame[channels][t] = val_fin
-            else:
-                trame[channels][t] = i
-            # print trame[channels][t]
-
-        if float(time()-tic) > float(duree):
-            print "EFFET WARNING: fade down trop long %s au lieu de %s (channels %s)" % (round(time()-tic, 2), duree, channels)
-
-    # def fade(self, channels, duree, val_dep, val_fin, pas, t=0):
-    #     global trame
-
-    #     pause = (float(duree)/abs(val_dep-val_fin))*pas
-
-    #     if val_dep > val_fin :
-    #         valeurs = range(val_dep,val_fin, -pas)
-    #     else:
-    #         valeurs = range(val_dep, val_fin, pas)
-
-    #     for i in valeurs:
-    #         if i<=pas :
-    #             i=0
-    #         trame[channels][t] =  i
-    #         gevent.sleep(pause)
-
-
-
-
-    def fade_up_down_NEW(self, channel, duree, val_dep, val_fin, pas, t = 0):
-        global trame
-        
-        nb_frames = float(val_fin - val_dep) / pas
-        # print nb_frames
-        frame_per_second = ceil( float(nb_frames) / duree )
-        pause = 1.0 / frame_per_second
-
-        pause /= 2  # car on a deux boucles
-
-        values = range(val_dep, val_fin+1, pas)
-        tic = time()
-        for idx, value in enumerate(values):
-            if idx > 1:  # nécessaire pour ne pas faire le dernier sleep
-                gevent.sleep(pause)
-                trame[channel][t] = value
-        for (idx, i) in enumerate(reversed(values)):
-            if idx > 1:
-                gevent.sleep(pause)
-            trame[channel][t] =  i
-
-        if float(time()-tic) > float(duree):
-            print "EFFET WARNING: fade up down trop long %s au lieu de %s" % (round(time()-tic, 2), duree)
-  
-    def fade_up_down(self, canal, duree, val_dep, val_fin, pas, t = 0):
-        """ méthode à supprimer"""
-
-        global trame
-        pause = (float(duree)/abs(val_dep-val_fin))*float((pas/2))
-
-        if val_dep > val_fin :
-            valeurs = range(val_dep,val_fin, -pas)
-        else : valeurs = range(val_dep, val_fin, pas)
+def fade_up_down_kill(dmx_frame, canal, duree, val_dep, val_fin, pas, timeout):
+    pause = (float(duree)/abs(val_dep-val_fin))*float((pas/2))
+    if val_dep > val_fin :
+        valeurs = range(val_dep,val_fin, -pas)
+    else : valeurs = range(val_dep, val_fin, pas)
+    tic = time()
+    while 1:
         for i in valeurs:
-            trame[canal][t] =  i
+            dmx_frame[canal][0] =  i
+            if (time() - tic > timeout) : return 0
             gevent.sleep(pause)
         for i in reversed(valeurs):
-            trame[canal][t] =  i
+            dmx_frame[canal][0] =  i
+            if (time() - tic > timeout) : return 0
             gevent.sleep(pause)
-  
-  
-    def fade_up_down_kill(self, canal, duree, val_dep, val_fin, pas, timeout, t = 0):
-        global trame
-        pause = (float(duree)/abs(val_dep-val_fin))*float((pas/2))
-        if val_dep > val_fin :
-            valeurs = range(val_dep,val_fin, -pas)
-        else : valeurs = range(val_dep, val_fin, pas)
-        tic = time()
-        while 1:
-            for i in valeurs:
-                trame[canal][t] =  i
-                if (time() - tic > timeout) : return 0
-                gevent.sleep(pause)
-            for i in reversed(valeurs):
-                trame[canal][t] =  i
-                if (time() - tic > timeout) : return 0
-                gevent.sleep(pause)
 
 
 
-    def constant(self, channel, value):
-        global trame
+def strobe(self, channels, duration, lower_value, upper_value, freq, t=0):
+    global trame
+    pause = 1/float(freq)
 
-        trame[channel][0] = value
-        gevent.sleep(1)
-
-
-    def constants(self, channels, values):
-        global trame
-
-        # tic = time()
-        # while 1:
-        for idx, channel in enumerate(channels):
-            trame[channel][0] = values[idx]
-        gevent.sleep(1)
-            # if (time() - tic > duration):
-            #     return 0
-
-
-    def fade_up(self, channels, duration, val_dep, val_fin, pas, t=0):
-        global trame
-
-        nb_frames = float(val_fin - val_dep) / pas
-        # print nb_frames
-        frame_per_second = ceil( float(nb_frames) / duration )
-        # print frame_per_second
-        pause = 1.0 / frame_per_second
-        # print pause
-
-        tic = time()
-        for idx, i in enumerate(range(val_dep, val_fin, pas)):
-            if idx > 0:
-                gevent.sleep(pause)
-            if i + pas > val_fin:  # car range ne permet pas toujours d'aller au bout
-                trame[channels][t] = val_fin
-            else:
-                trame[channels][t] = i
-            # print trame[channels][t]
-
-        if float(time()-tic) > float(duration):
-            print "EFFET WARNING: fade up down trop long %s au lieu de %s" % (round(time()-tic, 2), duration)
-
-
-    def strobe(self, channels, duration, lower_value, upper_value, freq, t=0):
-        global trame
-        pause = 1/float(freq)
-
-        tic = time()
-        while 1:
+    tic = time()
+    while 1:
+        for channel in channels:
+            trame[channel][t] = upper_value
+        gevent.sleep(pause)
+        for channel in channels:
+            trame[channel][t] = lower_value
+        if (time() - tic > duration) : 
             for channel in channels:
-                trame[channel][t] = upper_value
-            gevent.sleep(pause)
-            for channel in channels:
-                trame[channel][t] = lower_value
-            if (time() - tic > duration) : 
-                for channel in channels:
-                    trame[channel][t] = 0
-                return 0
-            gevent.sleep(pause)
+                trame[channel][t] = 0
+            return 0
+        gevent.sleep(pause)
         
+
+
+
+
+
+
+"""
+############################################################################
+                        SIMPLE DMX EFFECTS
+############################################################################
+"""
+
+# def constant(self, channel, value):
+#     global trame
+
+#     trame[channel][0] = value
+#     gevent.sleep(1)
+
+
+def constants(dmx_frame, channels, values):
+    if isinstance(values, int):
+        # then our user, just pass a single value for all channels
+        values = values*len(channels)    
+    for idx, channel in enumerate(channels):
+        dmx_frame[channel][0] = values[idx]
+    gevent.sleep(1)
+
+def petite_explosion(starting_time, dmx_frame):
+    """
+        à reprendre !
+    """
+    add_effect(parleds, 20.3,   [PARLED_2.r], fade_up_down, [0.8, 50, 255, 6])
+    add_effect(parleds, 20.5,   [PARLED_2.b], fade_up, [1, 0, 255, 2])
+    add_effect(parleds, 21.5,   [PARLED_2.r, PARLED_2.b], fade_down, [0.5, 255, 0, 4])
+
+
+
+# def effet_gouttes(dmx_frame, number, interval):
+# parleds = []
+
+# for i in range(1, number):
+#     parleds.extend( dmx.multi(delay, dmx.fade_up_down,            [PARLED_1.r, PARLED_1.b], 1, 20, 255, 4))
+#     parleds.extend( dmx.multi(delay+interval, dmx.fade_up_down,   [PARLED_2.r, PARLED_2.b], 1, 20, 255, 4))
+#     parleds.extend( dmx.multi(delay+interval*2, dmx.fade_up_down, [PARLED_3.r, PARLED_3.b], 1, 20, 255, 4))
+#     parleds.extend( dmx.multi(delay+interval*3, dmx.fade_up_down, [PARLED_4.r, PARLED_4.b], 1, 20, 255, 4))
+#     delay = delay + interval*4
+# return parleds
+def effet_gouttes(starting_time, dmx_frame, number, interval):
+
+    equipment_extension = []
+
+    for i in range(1, number):
+        for channel in [PARLED_1.r, PARLED_1.b]:
+            equipment_extension.append(gevent.spawn_later(starting_time, fade_up_down, dmx_frame, channel, 1, 20, 255, 4))
+        for channel in [PARLED_2.r, PARLED_2.b]:
+            equipment_extension.append(gevent.spawn_later(starting_time+interval, fade_up_down, dmx_frame, channel, 1, 20, 255, 4))
+        for channel in [PARLED_3.r, PARLED_3.b]:
+            equipment_extension.append(gevent.spawn_later(starting_time+interval*2, fade_up_down, dmx_frame, channel, 1, 20, 255, 4))
+        for channel in [PARLED_4.r, PARLED_4.b]:
+            equipment_extension.append(gevent.spawn_later(starting_time+interval*3, fade_up_down, dmx_frame, channel, 1, 20, 255, 4))
+        starting_time = starting_time + interval*4
+
+        # parleds_extension.extend( dmx.multi(delay, dmx.fade_up_down,            [PARLED_1.r, PARLED_1.b], 1, 20, 255, 4))
+        # parleds_extension.extend( dmx.multi(delay+interval, dmx.fade_up_down,   [PARLED_2.r, PARLED_2.b], 1, 20, 255, 4))
+        # parleds_extension.extend( dmx.multi(delay+interval*2, dmx.fade_up_down, [PARLED_3.r, PARLED_3.b], 1, 20, 255, 4))
+        # parleds_extension.extend( dmx.multi(delay+interval*3, dmx.fade_up_down, [PARLED_4.r, PARLED_4.b], 1, 20, 255, 4))
+        # delay = delay + interval*4
+    return equipment_extension
+
+
+# def sequence_rires(self, delay, duration, channels, overrided_channels):
+#     dmx = DMX()
+#     g = gevent.spawn_later(delay, dmx.override, overrided_channels, 1)
+#     parleds = dmx.multi(delay, dmx.fade_up_down, channels, duration, 0, 255, 6, 1)
+#     g = gevent.spawn_later(delay + duration, dmx.override, overrided_channels, 0)
+#     return parleds
+def inter_fade(self, delay, duration, freq, channels, overrided_channels):
+    dmx = DMX()
+    g = gevent.spawn_later(delay, dmx.override, overrided_channels, 1)
+    parleds = dmx.multi(delay, dmx.fade_up_down_kill, channels, freq, 0, 255, 6, duration-0.05,1)
+    g = gevent.spawn_later(delay + duration, dmx.override, overrided_channels, 0)
+    return parleds
+
+
+
+
+
+
+def blackout(dmx_frame, channels=None):
+    """
+        set les canaux passés à 0, par défaut reset LES 512 CANAUX.
+    """
+
+    if channels is None:
+        for i in range(1, len(dmx_frame)):
+            dmx_frame[i][0] = 0
+    else:
+        for i in channels:
+            dmx_frame[i][0] = 0
+
+
+
+
+
+
+
+
+
+
+    # def boucle(self, iterations, function, *args):
+    #     """
+    #         lance la fonction demandée un nombre "iterations" de fois.
+    #     """
+    #     for i in range(0, iterations):
+    #         function(*args)
+
+    # def multi_boucle(self, delay, iterations, function, channels, *args):
+    #     """
+    #         on duplique la fonciton demandée et on la lance un nombre "iterations" de fois.
+
+    #     """
+    #     g = [0]*len(channels)
+        
+    #     dmx = DMX()
+    #     for idx, channel in enumerate(channels):
+    #         g[idx] = gevent.spawn_later(delay, dmx.boucle, iterations, function, channel, *args)
+
+    #     return g
+
+
+
+
+
 
 
 
@@ -332,6 +370,7 @@ class DMX():
         les méthodes ci-dessous sont propres aux séquences.
 
     """
+class DMX():
 
     def battement(self, channels, duree, val_dep, val_fin, pas, t = 0):
         global trame
@@ -427,20 +466,6 @@ class DMX():
 
         gevent.sleep(1)
 
-    def sequence_rires(self, delay, duration, channels, overrided_channels):
-        dmx = DMX()
-        g = gevent.spawn_later(delay, dmx.override, overrided_channels, 1)
-        parleds = dmx.multi(delay, dmx.fade_up_down_NEW, channels, duration, 0, 255, 6, 1)
-        g = gevent.spawn_later(delay + duration, dmx.override, overrided_channels, 0)
-        return parleds
-    def inter_fade(self, delay, duration, freq, channels, overrided_channels):
-        dmx = DMX()
-        g = gevent.spawn_later(delay, dmx.override, overrided_channels, 1)
-        parleds = dmx.multi(delay, dmx.fade_up_down_kill, channels, freq, 0, 255, 6, duration-0.05,1)
-        g = gevent.spawn_later(delay + duration, dmx.override, overrided_channels, 0)
-        return parleds
-
-
 
 
 
@@ -464,17 +489,6 @@ class DMX():
             j += 1
 
 
-
-    def effet_gouttes(self, delai, nombre, intervalle):
-        parleds = []
-        dmx = DMX()
-        for i in range(1, nombre):
-            parleds.extend( dmx.multi(delai, dmx.fade_up_down_NEW, [2,4], 1, 20, 255, 4))
-            parleds.extend( dmx.multi(delai+intervalle, dmx.fade_up_down_NEW, [7,9], 1, 20, 255, 4))
-            parleds.extend( dmx.multi(delai+intervalle*2, dmx.fade_up_down_NEW, [12,14], 1, 20, 255, 4))
-            parleds.extend( dmx.multi(delai+intervalle*3, dmx.fade_up_down_NEW, [17,19], 1, 20, 255, 4))
-            delai = delai + intervalle*4
-        return parleds
 
 
     def effet_grad(self, delai, duree, int_dep, int_fin):
@@ -513,4 +527,71 @@ class DMX():
     #     tic = time()
     #     while (time() - tic < duree) and (capteur == false):
     #         gevent.sleep(0.1)
+
+    # def fade_up_down(self, canal, duree, val_dep, val_fin, pas, t = 0):
+    #     """ méthode à supprimer"""
+
+    #     global trame
+    #     pause = (float(duree)/abs(val_dep-val_fin))*float((pas/2))
+
+    #     if val_dep > val_fin :
+    #         valeurs = range(val_dep,val_fin, -pas)
+    #     else : valeurs = range(val_dep, val_fin, pas)
+    #     for i in valeurs:
+    #         trame[canal][t] =  i
+    #         gevent.sleep(pause)
+    #     for i in reversed(valeurs):
+    #         trame[canal][t] =  i
+    #         gevent.sleep(pause)
+  
+  
+    # def fade_up_down_kill(self, canal, duree, val_dep, val_fin, pas, timeout, t = 0):
+    #     global trame
+    #     pause = (float(duree)/abs(val_dep-val_fin))*float((pas/2))
+    #     if val_dep > val_fin :
+    #         valeurs = range(val_dep,val_fin, -pas)
+    #     else : valeurs = range(val_dep, val_fin, pas)
+    #     tic = time()
+    #     while 1:
+    #         for i in valeurs:
+    #             trame[canal][t] =  i
+    #             if (time() - tic > timeout) : return 0
+    #             gevent.sleep(pause)
+    #         for i in reversed(valeurs):
+    #             trame[canal][t] =  i
+    #             if (time() - tic > timeout) : return 0
+    #             gevent.sleep(pause)
+
+
+    # def multi(self, delay, function, channels, *args):
+    #     """
+    #         duplique la fonction demandée pour chaque canal passé en paramètre.
+
+    #     """
+
+    #     g = [0]*len(channels)
+
+    #     for idx, channel in enumerate(channels):
+    #         g[idx] = gevent.spawn_later(delay, function, channel, *args)
+
+    #     return g
+
+
+
+
+    # def fade(self, channels, duree, val_dep, val_fin, pas, t=0):
+    #     global trame
+
+    #     pause = (float(duree)/abs(val_dep-val_fin))*pas
+
+    #     if val_dep > val_fin :
+    #         valeurs = range(val_dep,val_fin, -pas)
+    #     else:
+    #         valeurs = range(val_dep, val_fin, pas)
+
+    #     for i in valeurs:
+    #         if i<=pas :
+    #             i=0
+    #         trame[channels][t] =  i
+    #         gevent.sleep(pause)
 

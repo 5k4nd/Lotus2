@@ -40,12 +40,6 @@ from effets import Effets
 from audio_functions import audio_bell, audio_stop
 
 
-# import math
-# from json import loads
-# import time
-# from pygame import mixer
-
-
 
 class Thread_Lotus(Thread):
     """
@@ -81,8 +75,7 @@ class Thread_Lotus(Thread):
                 
 
                 if "capa" in got_lotus.keys():
-                    # on ignore les 0
-                    if (int(got_lotus['capa']) == 0):
+                    if (int(got_lotus['capa']) == 0):  # on ignore les 0, ils ne sont *jamais* pertinents
                         pass
                     else:
                         # on initialise le ground si ça n'a pas été déjà fait
@@ -206,35 +199,35 @@ class Thread_Events(Thread):
         while 1:
             sleep(.01)
 
-            try:
-                ## BATTEMENT
-                if self.thread_ultrasonics.visitors_detected or self.state['battement']:
-                    self.state['battement'] = True
-                    self.state['intro'] = False
-                    print("MAIN: start battement")
-                    self.effets.battement_de_coeur(self.dmx, ref_thread_events=self)
-                
-                    ## SEQUENCE
-                    if self.thread_lotus.must_start_sequence or 1:
-                        self.state['battement'] = False
-                        self.state['sequence'] = True
-                        print("MAIN: start sequence")
-                        self.effets.sequence(ref_thread_events=self)
+            # try:
+            ## BATTEMENT
+            if self.thread_ultrasonics.visitors_detected or self.state['battement'] or 1:
+                # self.state['battement'] = True
+                # self.state['intro'] = False
+                # print("MAIN: start battement")
+                # self.effets.battement_de_coeur(self.dmx, ref_thread_events=self)
+            
+                ## SEQUENCE
+                if self.thread_lotus.must_start_sequence or 1:
+                    self.state['battement'] = False
+                    self.state['sequence'] = True
+                    print("MAIN: start sequence")
+                    self.effets.sequence(ref_thread_events=self)
 
-                        print("MAIN: on reset le visitors_detected à FALSE")
-                        self.thread_ultrasonics.visitors_detected = False
+                    print("MAIN: on reset le visitors_detected à FALSE")
+                    self.thread_ultrasonics.visitors_detected = False
 
-                else:
-                    ## INTRO
-                    print("MAIN: start intro")
-                    self.effets.sequence_intro_caverne(self.dmx, ref_thread_events=self)
+            else:
+                ## INTRO
+                print("MAIN: start intro")
+                self.effets.sequence_intro_caverne(self.dmx, ref_thread_events=self)
 
 
 
-            except exc_info():
-                print exc_info()
-                print exc_info()[-1].tb_lineno
-                pass
+            # except exc_info():
+            #     print exc_info()
+            #     print exc_info()[-1].tb_lineno
+            #     pass
 
 
 
