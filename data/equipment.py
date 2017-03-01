@@ -31,12 +31,13 @@ class PARLED():
                 PARLED_3.b,
                 PARLED_4.b
             ]
+            self.rgb = self.r + self.g + self.b
 
         else:
             self.r = address + 1
             self.g = address + 2
             self.b = address + 3
-            self.all = [self.r, self.g, self.b]
+            self.rgb = [self.r, self.g, self.b]
 
 
 class RGB():
@@ -49,28 +50,18 @@ class RGB():
 
 
 PARLED_1 = PARLED(address=1)
-2
-3
-4
 
 PARLED_2 = PARLED(address=6)
-7
-8
-9
 
 PARLED_3 = PARLED(address=11)
-12
-13
-14
 
 PARLED_4 = PARLED(address=16)
-17
-18
-19
+
 PARLED_ALL = PARLED(None)
 
 BANDEAU_LED = RGB(address=21)
 
 PC_1000 = 24
 
-
+if __name__ == '__main__':
+    print(PARLED_ALL.rgb)

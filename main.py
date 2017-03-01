@@ -187,7 +187,7 @@ class Thread_Events(Thread):
             'battement': False,
             'sequence': False
         }
-        self.dmx = DMX()
+        # self.dmx = DMX()
         self.effets = Effets(self.arduino_dmx, self.thread_ultrasonics, self.thread_lotus)
 
 
@@ -205,7 +205,7 @@ class Thread_Events(Thread):
                 # self.state['battement'] = True
                 # self.state['intro'] = False
                 # print("MAIN: start battement")
-                # self.effets.battement_de_coeur(self.dmx, ref_thread_events=self)
+                # self.effets.battement_de_coeur(ref_thread_events=self)
             
                 ## SEQUENCE
                 if self.thread_lotus.must_start_sequence or 1:
@@ -220,7 +220,7 @@ class Thread_Events(Thread):
             else:
                 ## INTRO
                 print("MAIN: start intro")
-                self.effets.sequence_intro_caverne(self.dmx, ref_thread_events=self)
+                self.effets.sequence_intro_caverne(ref_thread_events=self)
 
 
 

@@ -11,17 +11,6 @@ from data.materiel import *
 from dmx_functions import *
 
 
-"""
-
-ToDo : détruire la classe DMX et faire un import *
-
-- supprimer la méthode fade_up_down_kill, a priori c'est un patch
-
-
-"""
-
-
-
 
 class Effets():
     """
@@ -30,15 +19,13 @@ class Effets():
             - les effets lumières via la classe DMX (importée depuis dmx_functions)
             - les effets de son d'audio_functions
 
- 
-
     """
 
     def __init__(self, arduino_dmx, arduino_ultrasonics, arduino_lotus):
-        # self.dmx = DMX()
         self.arduino_dmx = arduino_dmx
         self.arduino_ultrasonics = arduino_ultrasonics
         self.arduino_lotus = arduino_lotus
+
 
 
 
@@ -49,28 +36,16 @@ class Effets():
 
             voir le premier appel de la méthode add_effect pour un aperçu de ses différents paramètres.
 
+            vous pouvez travailler à partir d'un temps spécifique en modifiant la constante STARTING_TIME à autre chose que 0.
+
         """
-        MAX_DMX_CHANNELS = 30
-        STARTING_TIME = 0  # used for debugging
-
-        audio_sequence(ref_thread_events)
-
 
 
         """
-            à nettoyer
+        ####################################################################
+                        QUELQUES FONCTIONS POUR LA SÉQUENCE
+        ####################################################################
         """
-        
-        dmx_frame          = [0]*MAX_DMX_CHANNELS
-        priority_dmx_frame = [0]*MAX_DMX_CHANNELS  # convention : la valeur par défaut du dmx_frame à haut niveau de priorité est -1
-        for i in range(0,len(dmx_frame)):
-            dmx_frame[i] = [0]*2
-            priority_dmx_frame[i] = [-1]*2
-
-        # dmx = self.dmx
-        blackout(dmx_frame)
-        dmx_streamer = gevent.spawn(send_serial, self.arduino_dmx, 0.02, dmx_frame, priority_dmx_frame)
-
 
 
         def add_effect(equipment, starting_time, dmx_channels, effect, effect_args, overrided_channels=None, repeat=1):
@@ -108,10 +83,59 @@ class Effets():
                 gevent.spawn_later(starting_time, effect, dmx_frame, *effect_args)
             )
 
+        def laughs_effect(start_time, times_number, interval):
+            for i in range(1, times_number):
+                add_effect(parleds, start_time,            [PARLED_1.r, PARLED_1.b], fade_up_down, [1, 20, 255, 4])
+                add_effect(parleds, start_time+interval,   [PARLED_2.r, PARLED_2.b], fade_up_down, [1, 20, 255, 4])
+                add_effect(parleds, start_time+interval*2, [PARLED_3.r, PARLED_3.b], fade_up_down, [1, 20, 255, 4])
+                add_effect(parleds, start_time+interval*3, [PARLED_4.r, PARLED_4.b], fade_up_down, [1, 20, 255, 4])
+                start_time = start_time + interval*4
 
+        def petite_explosion(starting_time):
+            """
+                à reprendre !
+            """
+            add_effect(parleds, 20.3,   [PARLED_2.r], fade_up_down, [0.8, 50, 255, 6])
+            add_effect(parleds, 20.5,   [PARLED_2.b], fade_up, [1, 0, 255, 2])
+            add_effect(parleds, 21.5,   [PARLED_2.r, PARLED_2.b], fade_down, [0.5, 255, 0, 4])
+
+
+
+        def effet_palpitation_graduelle(dmx_frame, starting_time, duration, int_dep, int_fin):
+            """
+                palpite de plus en plus vite.
+            """
+            d = starting_time
+            interval = int_dep
+            dec = (int_dep - int_fin)/20
+            while starting_time-d < duration:
+                add_effect(parleds, starting_time,  PARLED_ALL.r, fade_up_down, [interval, 30, 100, 4])
+                add_effect(parleds, starting_time,  PARLED_ALL.b, fade_up_down, [interval, 50, 255, 4])
+                starting_time = starting_time + interval + 0.3
+                interval = interval - dec
+
+        """
+        ####################################################################
+                            INITIALISATION DE LA SÉQUENCE
+        ####################################################################
+        """
+        # audio_sequence(ref_thread_events)
+
+        STARTING_TIME = 0  # used for debugging
+        
+        dmx_frame, priority_dmx_frame, dmx_streamer = init_dmx(arduino_dmx=self.arduino_dmx, max_dmx_channels=30)
+        blackout(dmx_frame)
 
         parleds = []
 
+
+
+
+        """
+        ####################################################################
+                    LA SÉQUENCE i.e. tous les effets à la suite
+        ####################################################################
+        """
         ## INTRO
         add_effect(
             equipment=parleds,
@@ -120,17 +144,17 @@ class Effets():
             effect=fade_up,
             effect_args=[0.2, 0, 255, 6],
             overrided_channels=None,    # optional
-            repeat=1                # optional
+            repeat=1                    # optional
         )
         add_effect(parleds, 0.5,    [PARLED_1.r, PARLED_1.g, PARLED_2.r, PARLED_2.g], fade_up, [1, 0, 255, 4])
-        add_effect(parleds, 1.2,    PARLED_1.all+PARLED_2.all, fade_up_down_kill, [0.2, 0, 255, 8, 3.8])
+        add_effect(parleds, 1.2,    PARLED_1.rgb+PARLED_2.rgb, fade_up_down, [0.2, 0, 255, 8, 3.8])
 
         add_effect(parleds, 0,      [PARLED_3.r, PARLED_4.r], fade_up_down, [0.8, 0, 255, 8])
         add_effect(parleds, 0,      [PARLED_3.b, PARLED_4.b], fade_up_down, [0.8, 0, 255, 8])        
-        add_effect(parleds, 3,      PARLED_3.all+PARLED_4.all, fade_up_down_kill, [0.3, 0, 255, 8, 2])
+        add_effect(parleds, 3,      PARLED_3.rgb+PARLED_4.rgb, fade_up_down, [0.3, 0, 255, 8, 2])
         
-        add_effect(parleds, 5,      PARLED_1.all+PARLED_2.all, fade_down, [2, 255, 0, 2])
-        add_effect(parleds, 5,      PARLED_3.all+PARLED_4.all, fade_down, [2.2, 255, 0, 2])
+        add_effect(parleds, 5,      PARLED_1.rgb+PARLED_2.rgb, fade_down, [2, 255, 0, 2])
+        add_effect(parleds, 5,      PARLED_3.rgb+PARLED_4.rgb, fade_down, [2.2, 255, 0, 2])
 
         
 
@@ -144,89 +168,83 @@ class Effets():
 
 
         # HARPE - suite des paroles (BLEU)
-        add_effect(parleds, 19,     [PARLED_1.b], fade_up, [1, 0, 255, 2])
+        add_effect(parleds, 19,     [PARLED_1.b], fade_up,   [1, 0, 255, 2])
         add_effect(parleds, 20,     [PARLED_1.b], fade_down, [0.5, 255, 0, 5])
-        add_effect(parleds, 25,     [PARLED_1.b], fade_up, [1, 0, 255, 2])
+        add_effect(parleds, 25,     [PARLED_1.b], fade_up,   [1, 0, 255, 2])
         add_effect(parleds, 26,     [PARLED_1.b], fade_down, [0.5, 255, 0, 4])
         
-        add_effect(parleds, 20.5,   [PARLED_2.b], fade_up, [1, 0, 255, 2])
+        add_effect(parleds, 20.5,   [PARLED_2.b], fade_up,   [1, 0, 255, 2])
         add_effect(parleds, 21.5,   [PARLED_2.b], fade_down, [0.5, 255, 0, 4])
-        add_effect(parleds, 26.5,   [PARLED_2.b], fade_up, [1, 0, 255, 4])
+        add_effect(parleds, 26.5,   [PARLED_2.b], fade_up,   [1, 0, 255, 4])
         add_effect(parleds, 27.5,   [PARLED_2.b], fade_down, [0.5, 255, 0, 2])
 
-        add_effect(parleds, 22,     [PARLED_3.b], fade_up, [1, 0, 255, 2])
+        add_effect(parleds, 22,     [PARLED_3.b], fade_up,   [1, 0, 255, 2])
         add_effect(parleds, 23,     [PARLED_3.b], fade_down, [0.5, 255, 0, 4])
 
-        add_effect(parleds, 23.5,   [PARLED_4.b], fade_up, [1, 0, 255, 2])
+        add_effect(parleds, 23.5,   [PARLED_4.b], fade_up,   [1, 0, 255, 2])
         add_effect(parleds, 24.5,   [PARLED_4.b], fade_down, [0.5, 255, 0, 4])
 
         ## fade up down rose
-        add_effect(parleds, 28,     PARLED_ALL.r+PARLED_ALL.b, fade_up, [2, 0,255, 4])
+        add_effect(parleds, 28,     PARLED_ALL.r+PARLED_ALL.b, fade_up,   [2, 0,255, 4])
         add_effect(parleds, 30,     PARLED_ALL.r+PARLED_ALL.b, fade_down, [0.4, 255, 0, 4])
 
         ## éclat rouge
-        add_effect(parleds, 30.5,   PARLED_ALL.r, fade_up, [1, 0,255, 2])
+        add_effect(parleds, 30.5,   PARLED_ALL.r, fade_up,   [1, 0,255, 2])
         add_effect(parleds, 31.5,   PARLED_ALL.r, fade_down, [1, 255,0, 2])
         add_simple_effect(parleds, 32.5, constants, [[PARLED_1.r, PARLED_1.b], [0, 0]])
 
 
-        # STARTING_TIME = -32
         ## RIRES (GOUTTES VIOLET + RIRES JAUNES)
-        # G.extend( dmx.effet_gouttes(32.5, 14, 0.5))
-        # parleds += effet_gouttes(32.5, dmx_frame, 14, 0.5)
-        # add_effect(parleds, 32.5, effet_goutte, [14, 0.5])
-                
-        # # simule des rires, qui prennent le dessus sur tout le reste (via le paramètre override_param)
-        # add_effect(parleds, 40.4,     [PARLED_1.r, PARLED_1.g], fade_up_down, [1, 0, 255, 6], overrided_channels=[PARLED_1.r, PARLED_1.g, PARLED_1.b])
-        # parleds = dmx.multi(delay, dmx.fade_up_down, channels, duration, 0, 255, 6, 1)
+        laughs_effect(32.5, 14, 0.5)
+
+        # simule des rires, qui prennent le dessus sur tout le reste (via le paramètre override_param)
+        add_effect(parleds, 40.4,   [PARLED_1.r, PARLED_1.g], fade_up_down, [1, 0, 255, 6], overrided_channels=PARLED_1.rgb)
+        add_effect(parleds, 48,     [PARLED_1.r, PARLED_1.g], fade_up_down, [1, 0, 266, 6], overrided_channels=PARLED_1.rgb)
+        add_effect(parleds, 51.4,   [PARLED_1.r, PARLED_1.g], fade_up_down, [1, 0, 266, 6], overrided_channels=PARLED_1.rgb)
+
+        add_effect(parleds, 41.4,   [PARLED_2.r, PARLED_2.g], fade_up_down, [1, 0, 266, 6], overrided_channels=PARLED_2.rgb)
+        add_effect(parleds, 55.5,   [PARLED_2.r, PARLED_2.g], fade_up_down, [1, 0, 266, 6], overrided_channels=PARLED_2.rgb)
+        add_effect(parleds, 56,     [PARLED_2.r, PARLED_2.g], fade_up_down, [1, 0, 266, 6], overrided_channels=PARLED_2.rgb)
+
+        add_effect(parleds, 46.5,   [PARLED_3.r, PARLED_3.g], fade_up_down, [1, 0, 266, 6], overrided_channels=PARLED_3.rgb)
+        add_effect(parleds, 52.5,   [PARLED_3.r, PARLED_3.g], fade_up_down, [1, 0, 266, 6], overrided_channels=PARLED_3.rgb)
         
-        # add_effect(parleds, 41.4, 1, [PARLED_2.r, PARLED_2.g], [PARLED_2.r, PARLED_2.g, PARLED_2.b])
-
-        # add_effect(parleds, 48, 1, [PARLED_1.r, PARLED_1.g], [PARLED_1.r, PARLED_1.g, PARLED_1.b])
-        # add_effect(parleds, 51.4, 1, [PARLED_1.r, PARLED_1.g], [PARLED_1.r, PARLED_1.g, PARLED_1.b])
-
-        # add_effect(parleds, 55.5, 1, [PARLED_2.r, PARLED_2.g], [PARLED_2.r, PARLED_2.g, PARLED_2.b])
-        # add_effect(parleds, 56, 1, [PARLED_2.r, PARLED_2.g], [PARLED_2.r, PARLED_2.g, PARLED_2.b])
-
-        # add_effect(parleds, 46.5, 1, [PARLED_3.r , PARLED_3.g], [PARLED_3.r, PARLED_3.g, PARLED_3.b])
-        # add_effect(parleds, 52.5, 1, [PARLED_3.r , PARLED_3.g], [PARLED_3.r, PARLED_3.g, PARLED_3.b])
+        add_effect(parleds, 50.4,   [PARLED_4.r, PARLED_4.g], fade_up_down, [1, 0, 266, 6], overrided_channels=PARLED_4.rgb)
+        add_effect(parleds, 53.5,   [PARLED_4.r, PARLED_4.g], fade_up_down, [1, 0, 266, 6], overrided_channels=PARLED_4.rgb)
         
-        # add_effect(parleds, 50.4, 1, [PARLED_4.r , PARLED_4.g], [PARLED_4.r, PARLED_4.g, PARLED_4.b])
-        # add_effect(parleds, 53.5, 1, [PARLED_4.r, PARLED_4.g], [PARLED_4.r, PARLED_4.g, PARLED_4.b])
+        add_effect(parleds, 60.5,   [PARLED_1.r, PARLED_1.b], fade_up_down, [0.5, 20, 255, 4])
+        add_effect(parleds, 61,     [PARLED_2.r, PARLED_2.b], fade_up_down, [0.5, 20, 255, 4])
+
+        ## PREMIER CRI
+        add_simple_effect(parleds, 61.7, strobe, [PARLED_ALL.rgb, 1, 100, 255, 15])
+        add_effect(parleds, 62.8,   PARLED_ALL.rgb, fade_up, [0.2, 0,255, 2])
+        add_effect(parleds, 63,     PARLED_ALL.rgb, fade_down, [2, 255, 0, 2])
+        add_simple_effect(parleds, 65.1, strobe, [PARLED_ALL.rgb, 2, 100, 255, 15])
+
+        add_effect(parleds, 67.5,  PARLED_ALL.r + PARLED_ALL.b, fade_up_down, [1, 20, 255, 4])
+
+
+        ## DÉBUT CRESCENDO FINAL
+        effet_palpitation_graduelle(dmx_frame, 72.5, 23, 1.5, 0.3)
         
+        ## clignotements rouges rapides
+        add_effect(parleds, 78,     [PARLED_1.r], fade_up_down, [0.2, 0, 255, 6, 6.95], overrided_channels=PARLED_1.rgb)
+        add_effect(parleds, 78,     [PARLED_2.r], fade_up_down, [0.3, 0, 255, 6, 6.95], overrided_channels=PARLED_2.rgb)
+        add_effect(parleds, 78,     [PARLED_3.r], fade_up_down, [0.4, 0, 255, 6, 5.95], overrided_channels=PARLED_3.rgb)
+        add_effect(parleds, 78,     [PARLED_4.r], fade_up_down, [0.5, 0, 255, 6, 5.95], overrided_channels=PARLED_4.rgb)
 
 
-        # add_effect(parleds, 60.5, fade_up_down, [PARLED_1.r, PARLED_1.b], 0.5, 20, 255, 4)
-        # add_effect(parleds, 61, fade_up_down, [PARLED_2.r, PARLED_2.b], 0.5, 20, 255, 4)
+        # ## vortex final (majoritairement blanc)
+        add_effect(parleds, 96,     PARLED_3.rgb + PARLED_4.rgb, fade_down, [0.5, 255, 0, 2])
 
-        # ## PREMIER CRI
-        # parleds.append( gevent.spawn_later(STARTING_TIME+61.7, dmx.strobe, [PARLED_1.r, PARLED_1.g,\
-        #     PARLED_1.b, PARLED_2.r, PARLED_2.g, PARLED_2.b ,PARLED_3.r,PARLED_3.g,PARLED_3.b,PARLED_4.r,PARLED_4.g,PARLED_4.b], 1, 100, 255, 15))
-        # add_effect(parleds, 62.8, fade_up, [PARLED_1.r, PARLED_1.g, PARLED_1.b, PARLED_2.r,PARLED_2.g, PARLED_2.b,PARLED_3.r,PARLED_3.g,PARLED_3.b,PARLED_4.r,PARLED_4.g,PARLED_4.b], 0.2, 0,255, 2)
-        # add_effect(parleds, 63, fade_down, [PARLED_1.r, PARLED_1.g, PARLED_1.b, PARLED_2.r,PARLED_2.g, PARLED_2.b,PARLED_3.r,PARLED_3.g,PARLED_3.b,PARLED_4.r,PARLED_4.g,PARLED_4.b], 2, 255, 0, 2)
-        # parleds.append( gevent.spawn_later(STARTING_TIME+65.1, dmx.strobe, [PARLED_1.r, PARLED_1.g, PARLED_1.b, PARLED_2.r,PARLED_2.g, PARLED_2.b,PARLED_3.r,PARLED_3.g,PARLED_3.b,PARLED_4.r,PARLED_4.g,PARLED_4.b], 2, 100, 255, 15))
+        add_effect(parleds, 95.5,   PARLED_1.rgb + PARLED_2.rgb, fade_up_down, [0.2, 0, 255, 8, 2.9])
+        add_effect(parleds, 97,     PARLED_3.rgb + PARLED_4.rgb, fade_up_down, [0.3, 0, 255, 1.5])
 
-        # add_effect(parleds, 67.5,  fade_up_down, [PARLED_1.r,PARLED_1.b,PARLED_2.r,PARLED_2.b,PARLED_3.r,PARLED_3.b,PARLED_4.r,PARLED_4.b], 1, 20, 255, 4)
+        add_effect(parleds, 98.5,   PARLED_1.rgb + PARLED_2.rgb, fade_down, [2, 255, 0, 2])
+        add_effect(parleds, 98.5,   PARLED_3.rgb + PARLED_4.rgb, fade_down, [2, 255, 0, 2])
 
-        # parleds += dmx.effet_grad(STARTING_TIME+72.5, 23, 1.5, 0.3 )
-
-        
-        # parleds += dmx.inter_fade(STARTING_TIME+78, 7, 0.2, [PARLED_1.r], [PARLED_1.r,PARLED_1.g, PARLED_1.b])
-        # parleds += dmx.inter_fade(STARTING_TIME+78, 7, 0.3, [PARLED_2.r], [PARLED_2.r,PARLED_2.g, PARLED_2.b])
-        # parleds += dmx.inter_fade(STARTING_TIME+78, 6, 0.4, [PARLED_3.r], [PARLED_3.r,PARLED_3.g,PARLED_3.b])
-        # parleds += dmx.inter_fade(STARTING_TIME+78, 6, 0.5, [PARLED_4.r], [PARLED_4.r,PARLED_4.g,PARLED_4.b])
-
-
-        # add_effect(parleds, 96, fade_down, [PARLED_3.r,PARLED_3.g,PARLED_3.b,PARLED_4.r,PARLED_4.g,PARLED_4.b], 0.5, 255, 0, 2)
-
-        # add_effect(parleds, 95.5,  fade_up_down, [PARLED_1.r, PARLED_1.g, PARLED_1.b, PARLED_2.r, PARLED_2.g, PARLED_2.b], 0.2, 0, 255, 8)
-
-        # add_effect(parleds, 97, fade_up_down, [PARLED_3.r,PARLED_3.g,PARLED_3.b,PARLED_4.r,PARLED_4.g,PARLED_4.b], 0.3, 0, 255, 8)
-        # add_effect(parleds, 98.5, fade_down, [PARLED_1.r, PARLED_1.g, PARLED_1.b, PARLED_2.r, PARLED_2.g, PARLED_2.b], 2, 255, 0, 2)
-        # add_effect(parleds, 98.5, fade_down, [PARLED_3.r,PARLED_3.g,PARLED_3.b,PARLED_4.r,PARLED_4.g,PARLED_4.b], 2, 255, 0, 2)
-
-        # # on laisse le temps au dmx de s'écouler proprement
-        # parleds .append(gevent.spawn_later(99, gevent.sleep(2)))
+        # on laisse le temps au dmx de s'écouler proprement
+        parleds .append(gevent.spawn_later(99, gevent.sleep(2)))
         
         while (len(gevent.joinall(parleds, timeout=0)) != len(parleds)) :
             foo = 42
@@ -235,7 +253,7 @@ class Effets():
 
         print ("SEQUENCE: DMX TERMINÉ")
 
-        sleep(3)
+        sleep(2)
         dmx_streamer.kill()
 
         audio_stop("sequence")
@@ -244,7 +262,7 @@ class Effets():
         print('SEQUENCE: fin séquence sirènes')
 
 
-    def battement_de_coeur(self, dmx, ref_thread_events):
+    def battement_de_coeur(self, ref_thread_events):
         """
             battement de coeur lorsque des visiteurs sont entrés.
             - level 1 lorsqu'ils sont loins
@@ -264,7 +282,7 @@ class Effets():
         
         g_bandeau = gevent.spawn(dmx.constants, [BANDEAU_LED.r, BANDEAU_LED.g, BANDEAU_LED.b], [255, 0, 0])
 
-        dmx_streamer = gevent.spawn(dmx.send_serial, self.arduino_dmx, 0.02)
+        dmx_frame, priority_dmx_frame, dmx_streamer = init_dmx(arduino_dmx=self.arduino_dmx, max_dmx_channels=30)
         
         parleds = []
         parleds.extend( dmx.multi(0, dmx.battement, [2, 7,PARLED_3.r ,PARLED_4.r], duree_bat, 0, 255, 4))
@@ -298,13 +316,14 @@ class Effets():
         dmx_streamer.kill()
 
 
-    def sequence_intro_caverne(self, dmx, ref_thread_events):
+    def sequence_intro_caverne(self, ref_thread_events):
 
         audio_intro(ref_thread_events=ref_thread_events)
 
-        dmx_streamer = gevent.spawn(dmx.send_serial, self.arduino_dmx, 0.03)
+        dmx_frame, priority_dmx_frame, dmx_streamer = init_dmx(arduino_dmx=self.arduino_dmx, max_dmx_channels=30)
+        # dmx_streamer = gevent.spawn(send_serial, self.arduino_dmx, 0.03)
 
-        g_parled_4 = gevent.spawn(dmx.constants, [PARLED_4.r, PARLED_4.g, PARLED_4.b], [10, 50, 10])
+        g_parled_4 = gevent.spawn(constants, dmx_frame, PARLED_4.rgb, [10, 50, 10])
 
         # parleds = gevent.spawn(dmx.constant, PARLED_2.r, R-100)
         # parleds = gevent.spawn(dmx.constant, PARLED_2.g, G-100)
@@ -324,7 +343,7 @@ class Effets():
 
         while not(ref_thread_events.thread_ultrasonics.visitors_detected):
             # g_bandeau.extend( dmx.multi(0, dmx.lotus_oscillations_intro, [BANDEAU_LED.r]))
-            g_bandeau = gevent.spawn(dmx.lotus_oscillations_intro, BANDEAU_LED.r)
+            g_bandeau = gevent.spawn(intro_lotus_oscillations, dmx_frame, BANDEAU_LED.r)
             gevent.joinall([g_bandeau])
             # while (len(gevent.joinall(g_bandeau)) != len(g_bandeau)):
             #     if ref_thread_events.thread_ultrasonics.visitors_detected:
