@@ -45,7 +45,7 @@ class RGB():
         self.r = address
         self.g = address + 1
         self.b = address + 2
-        self.all = [self.r, self.g, self.b]
+        self.rgb = [self.r, self.g, self.b]
 
 
 

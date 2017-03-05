@@ -87,7 +87,7 @@ class Thread_Lotus(Thread):
                         # print self.data['capacitor_value']
 
                 # si le capteur est touché, càd valeur ded pin_ground + delta
-                delta = 2
+                delta = 400
                 # note : baisser delta pour plus de réactivité, l'augmenter si le lotus se déclenche tout seul ! :-)
                 if (self.data['capacitor_value'] > (self.data['capacitor_ground'] + delta)):
                     print("capacitif touché à %s" % self.data['capacitor_value'])
@@ -199,35 +199,34 @@ class Thread_Events(Thread):
         while 1:
             sleep(.01)
 
-            # try:
-            ## BATTEMENT
-            if self.thread_ultrasonics.visitors_detected or self.state['battement'] or 1:
-                # self.state['battement'] = True
-                # self.state['intro'] = False
-                # print("MAIN: start battement")
-                # self.effets.battement_de_coeur(ref_thread_events=self)
-            
-                ## SEQUENCE
-                if self.thread_lotus.must_start_sequence or 1:
-                    self.state['battement'] = False
-                    self.state['sequence'] = True
-                    print("MAIN: start sequence")
-                    self.effets.sequence(ref_thread_events=self)
+            try:
+                ## BATTEMENT
+                if self.thread_ultrasonics.visitors_detected or self.state['battement']:
+                    self.state['battement'] = True
+                    self.state['intro'] = False
+                    print("MAIN: start battement")
+                    self.effets.battement_de_coeur(ref_thread_events=self)
+                
+                    ## SEQUENCE
+                    if self.thread_lotus.must_start_sequence:
+                        self.state['battement'] = False
+                        self.state['sequence'] = True
+                        print("MAIN: start sequence")
+                        self.effets.sequence(ref_thread_events=self)
 
-                    print("MAIN: on reset le visitors_detected à FALSE")
-                    self.thread_ultrasonics.visitors_detected = False
+                        print("MAIN: on reset le visitors_detected à FALSE")
+                        self.thread_ultrasonics.visitors_detected = False
 
-            else:
-                ## INTRO
-                print("MAIN: start intro")
-                self.effets.sequence_intro_caverne(ref_thread_events=self)
+                else:
+                    ## INTRO
+                    print("MAIN: start intro")
+                    self.effets.sequence_intro_caverne(ref_thread_events=self)
 
 
-
-            # except exc_info():
+            except exc_info():
             #     print exc_info()
             #     print exc_info()[-1].tb_lineno
-            #     pass
+                pass
 
 
 
@@ -239,8 +238,8 @@ if __name__ == '__main__':
         # sleep(1)
 
         # on ouvre le port d'écoute de l'arduino MEGA qui écoute les 2 ultrasons de détection de passage
-        # arduino_ultrasonics = serial.Serial(MEGA_ULTRASONICS, 115200)
-        arduino_ultrasonics = "foobar"
+        arduino_ultrasonics = serial.Serial(MEGA_ULTRASONICS, 115200)
+        # arduino_ultrasonics = "foobar"
 
         # on démarre le thread associé
         thread_ultrasonics = Thread_Ultrasonics(arduino_ultrasonics)
@@ -248,8 +247,8 @@ if __name__ == '__main__':
 
 
         # on ouvre le port d'écoute de l'arduino MEGA qui écoute le lotus
-        # arduino_lotus = serial.Serial(MEGA_CAPACITOR, 115200)
-        arduino_lotus = "foobar"
+        arduino_lotus = serial.Serial(MEGA_CAPACITOR, 115200)
+        # arduino_lotus = "foobar"
 
         # on démarre le thread associé
         thread_lotus = Thread_Lotus(arduino_lotus)

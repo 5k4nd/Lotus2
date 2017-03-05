@@ -23,7 +23,7 @@ from time import sleep, time
 
 from math import *
 from data.equipment import *
-
+from data.colors import *
 
 
 
@@ -248,43 +248,75 @@ def blackout(dmx_frame, channels=None):
 
 def intro_lotus_oscillations(dmx_frame, bandeau_led):
     """
+    Note 1 :
         attention, une couleur c'est une PROPORTION de couleurs (ici r, g et b).
         le référentiel de la boucle est donc -- en fait -- la valeur courante de la
         plus haute valeur des couleurs (réfléchissez, c'est tout bête,
         ou bidouillez pour comprendre !)
 
+    Note 2 :         
+        attention, les boucles sont en deux parties car la partie des valeurs de
+        couleurs basses ont un pas plus faible (c'est plus fluide visuellement !).
 
     """
-    r = 30
-    g = 150
-    b = 50
-
-    red_divider = int(g/r)
-    blue_divider = int(g/b)
 
 
-    # global trame
-    val_dep = 30
-    pas = 2
-    pause = .07
-
-    dmx_frame[bandeau_led][0] = val_dep
-    dmx_frame[bandeau_led+1][0] = val_dep
-    dmx_frame[bandeau_led+2][0] = val_dep
-
-    for i in range(val_dep, g, pas):
-        dmx_frame[bandeau_led][0] = i / red_divider
-        dmx_frame[bandeau_led+1][0] = i
-        dmx_frame[bandeau_led+2][0] = i / blue_divider
-        gevent.sleep(pause)
-
-    gevent.sleep(1)
+    r, g, b = rose_lotus
     
-    for i in range(g, val_dep, -pas):
-        dmx_frame[bandeau_led][0] = i / red_divider
-        dmx_frame[bandeau_led+1][0] = i
+    green_divider = int(r/g)
+    blue_divider = int(r/b)
+
+
+    val_dep = 26
+    pas = 2
+    pause=.07
+
+    val_intermediaire = 66
+    pas_rapide = 1
+    pause_rapide = pause / 4.0
+
+
+    # constantes pour tests
+    # dmx_frame[bandeau_led][0] = 0
+    # dmx_frame[bandeau_led+1][0] = 0
+    # dmx_frame[bandeau_led+2][0] = 0
+
+
+    # boucle d'oscillation ascendante 1
+    for i in range(val_dep, val_intermediaire, pas_rapide):
+        dmx_frame[bandeau_led][0] = i
+        dmx_frame[bandeau_led+1][0] = i / green_divider
+        dmx_frame[bandeau_led+2][0] = i / blue_divider
+        gevent.sleep(pause_rapide)
+        print i, i / green_divider, i / blue_divider
+
+    # boucle d'oscillation ascendante 2
+    for i in range(val_intermediaire, r, pas):
+        dmx_frame[bandeau_led][0] = i
+        dmx_frame[bandeau_led+1][0] = i / green_divider
         dmx_frame[bandeau_led+2][0] = i / blue_divider
         gevent.sleep(pause)
+        print i, i / green_divider, i / blue_divider
+
+
+    gevent.sleep(2)
+
+    # boucle d'oscillation descendante 1
+    for i in range(r, val_intermediaire, -pas):
+        dmx_frame[bandeau_led][0] = i
+        dmx_frame[bandeau_led+1][0] = i / green_divider
+        dmx_frame[bandeau_led+2][0] = i / blue_divider
+        gevent.sleep(pause)
+        print i, i / green_divider, i / blue_divider
+    
+    # boucle d'oscillation descendante 2
+    for i in range(val_intermediaire, val_dep, -pas_rapide):
+        dmx_frame[bandeau_led][0] = i
+        dmx_frame[bandeau_led+1][0] = i / green_divider
+        dmx_frame[bandeau_led+2][0] = i / blue_divider
+        gevent.sleep(pause_rapide)
+        print i, i / green_divider, i / blue_divider
+
 
 def intro_battement(self, channels, duree, val_dep, val_fin, pas, t = 0):
     global trame

@@ -7,9 +7,9 @@ from gevent.pool import Group
 from time import sleep, time
 
 from audio_functions import *
-from data.materiel import *
 from dmx_functions import *
-
+from data.materiel import *
+from data.colors import *
 
 
 class Effets():
@@ -116,10 +116,10 @@ class Effets():
 
         """
         ####################################################################
-                            INITIALISATION DE LA SÉQUENCE
+                        CONFIG & INITIALISATION DE LA SÉQUENCE
         ####################################################################
         """
-        audio_sequence(ref_thread_events)
+        # audio_sequence(ref_thread_events)
 
         STARTING_TIME = 0  # used for debugging
         
@@ -321,23 +321,12 @@ class Effets():
         dmx_frame, priority_dmx_frame, dmx_streamer = init_dmx(arduino_dmx=self.arduino_dmx, max_dmx_channels=30)
         # dmx_streamer = gevent.spawn(send_serial, self.arduino_dmx, 0.03)
 
-        g_parled_4 = gevent.spawn(constants, dmx_frame, PARLED_4.rgb, [10, 50, 10])
 
-        # parleds = gevent.spawn(dmx.constant, PARLED_2.r, R-100)
-        # parleds = gevent.spawn(dmx.constant, PARLED_2.g, G-100)
-        # parleds = gevent.spawn(dmx.constant, PARLED_2.b, B-100)aaaaaaaaaaa
-        # g_bandeau = []
+        # g_parled_1 = gevent.spawn(constants, dmx_frame, PARLED_1.rgb, bleu_turquoise)
+        # g_parled_2 = gevent.spawn(constants, dmx_frame, PARLED_2.rgb, bleu_turquoise)
+        # g_parled_3 = gevent.spawn(constants, dmx_frame, PARLED_3.rgb, bleu_turquoise)
+        # g_parled_4 = gevent.spawn(constants, dmx_frame, PARLED_4.rgb, bleu_turquoise)
 
-        # parleds = gevent.spawn(dmx.constant, PARLED_3.r, R-100)
-        # parleds = gevent.spawn(dmx.constant, PARLED_3.g, G-100)
-        # parleds = gevent.spawn(dmx.constant, PARLED_3.b, B-100)
-
-        # parleds = gevent.spawn(dmx.constant, PARLED_4.r, R-100)
-        # parleds = gevent.spawn(dmx.constant, PARLED_4.g, G-100)
-        # parleds = gevent.spawn(dmx.constant, PARLED_4.b, B-100)
-
-        # g_bandeau.extend( dmx.multi(1, dmx.fade, [BANDEAU_LED.g], .3, 0, 30, 1))
-        # gevent.joinall(g_bandeau, timeout=0)
 
         while not(ref_thread_events.thread_ultrasonics.visitors_detected):
             # g_bandeau.extend( dmx.multi(0, dmx.lotus_oscillations_intro, [BANDEAU_LED.r]))
@@ -378,9 +367,12 @@ class Effets():
         # parleds = gevent.spawn(dmx.constant, PARLED_4.b, 0)
 
         # sleep(1)
-        # parleds.kill()
-        # g_bandeau.kill()
-        g_parled_4.kill()
+
+        g_bandeau.kill()
+        # g_parled_1.kill()
+        # g_parled_2.kill()
+        # g_parled_3.kill()
+        # g_parled_4.kill()
         dmx_streamer.kill()
 
 
