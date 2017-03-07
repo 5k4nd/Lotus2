@@ -6,18 +6,19 @@ import gevent
 from gevent.pool import Group
 from time import sleep, time
 
-from audio_functions import *
+# from audio_functions import *
 from dmx_functions import *
-from data.materiel import *
+from data.equipment import *
 from data.colors import *
 
 
 class Effets():
     """
-        dans cette classe se trouvent tous les effets.
-        un effet gère ensuite deux types de sous-effets :
-            - les effets lumières via la classe DMX (importée depuis dmx_functions)
-            - les effets de son d'audio_functions
+        dans cette classe se trouvent tous les effets -- qui sont finalement des séquences.
+        autant la musique tourne en tâche de fond sans souci (via VLC.py), autant le
+        DMX non. ce dernier sert donc de base temporelle, dans cette classe.
+
+        un effet comprend une suite d'effets lumières via la classe DMX (importée depuis dmx_functions).
 
     """
 
@@ -31,8 +32,7 @@ class Effets():
 
     def sequence(self, ref_thread_events):
         """
-            la séquence principale des sirènes, chronologiquement par effet lumière
-            et accessoirement effets sonores
+            la séquence principale des sirènes, chronologiquement par effets-lumière.
 
             voir le premier appel de la méthode add_effect pour un aperçu de ses différents paramètres.
 
@@ -53,7 +53,6 @@ class Effets():
 
             # s'il y a des canaux à haut niveau de priorité on démarre un thread prioritaire pour le flux DMX
             if overrided_channels:
-                print "ADD_EFFECT: OVERRIDE EN COURS"
                 override_duration = effect_args[0]  # un peu pourri comme pratique
                 current_dmx_frame = priority_dmx_frame
                 overrider = gevent.spawn_later(starting_time, dmx_high_priority_overrider, current_dmx_frame, overrided_channels, True)
@@ -71,7 +70,6 @@ class Effets():
             # s'il y avait des canaux à haut niveau de priorité on arrête le thread prioritaire pour le flux DMX
             if overrided_channels:
                 overrider = gevent.spawn_later(starting_time + override_duration, dmx_high_priority_overrider, current_dmx_frame, overrided_channels, False)
-                print "ADD_EFFECT: FIN D'UN OVERRIDE"
 
         def add_simple_effect(equipment, starting_time, effect, effect_args):
             """
@@ -119,7 +117,6 @@ class Effets():
                         CONFIG & INITIALISATION DE LA SÉQUENCE
         ####################################################################
         """
-        # audio_sequence(ref_thread_events)
 
         STARTING_TIME = 0  # used for debugging
         
@@ -242,7 +239,7 @@ class Effets():
         add_effect(parleds, 98.5,   PARLED_3.rgb + PARLED_4.rgb, fade_down, [2, 255, 0, 2])
 
         # on laisse le temps au dmx de s'écouler proprement
-        parleds .append(gevent.spawn_later(99, gevent.sleep(2)))
+        parleds.append(gevent.spawn_later(99, gevent.sleep(2)))
         
         while (len(gevent.joinall(parleds, timeout=0)) != len(parleds)) :
             foo = 42
@@ -267,45 +264,71 @@ class Effets():
             - level 2 lorsqu'ils sont proches
 
         """
+        print "EFFET: start battement"
 
+        try:
+
+            level = 2
+
+
+            return 0
+            dmx_frame, priority_dmx_frame, dmx_streamer = init_dmx(arduino_dmx=self.arduino_dmx, max_dmx_channels=30)
+            
+            g_bandeau = []
+            while not(ref_thread_events.thread_lotus.must_start_sequence):
+                    g_bandeau.append(gevent.spawn_later(
+                        0,
+                        intro_battement, dmx_frame, BANDEAU_LED.r,
+                        ref_must_start_sequence=ref_thread_events.thread_lotus.must_start_sequence,
+                        level=level
+                    ))
+                    # pour interrompre la séquence d'intro immédiatement lorsqu'un visiteur est détécté. à priori ce n'est pas ce que l'on veut !
+                    while (len(gevent.joinall(g_bandeau)) != len(g_bandeau)):
+                        print "coucou"
+                        print "POURQUOI ON PASSE PAS ICI ?"
+                        print "coucou"
+                        if ref_thread_events.thread_lotus.must_start_sequence:
+                            break
+                    # gevent.joinall([g_bandeau])
+
+
+        except exc_info():
+            print exc_info()
+            print exc_info()[-1].tb_lineno
+            pass
 
         
-        duree_bat = 0.35
-        level = 1
 
-        audio_battement(level=level, ref_thread_events=ref_thread_events)
 
-        
-        g_par_1000 = gevent.spawn(dmx.constant, PAR_1000, 50)
-        
-        g_bandeau = gevent.spawn(dmx.constants, [BANDEAU_LED.r, BANDEAU_LED.g, BANDEAU_LED.b], [255, 0, 0])
 
-        dmx_frame, priority_dmx_frame, dmx_streamer = init_dmx(arduino_dmx=self.arduino_dmx, max_dmx_channels=30)
-        
-        parleds = []
-        parleds.extend( dmx.multi(0, dmx.battement, [2, 7,PARLED_3.r ,PARLED_4.r], duree_bat, 0, 255, 4))
+        # gevent.joinall([g_bandeau])
+            # g_bandeau = gevent.spawn(intro_lotus_oscillations, dmx_frame, BANDEAU_LED.r)
+        # gevent.spawn_later(0, intro_battement, dmx_frame, BANDEAU_LED.r)
 
 
         # on attend la fin du battement MAIS on INTERROMPT le battement si le lotus est touché ! 
-        while (len(gevent.joinall(parleds, timeout=0)) != len(parleds)):
-            sleep(.01)
-            if (self.arduino_lotus.must_start_sequence == True):
-                break
+        # while (len(gevent.joinall(parleds, timeout=0)) != len(parleds)):
+        #     sleep(.01)
+        #     if (self.arduino_lotus.must_start_sequence == True):
+        #         break
 
 
-        if level==1:
-            tic = time()
-            while (time() - tic < 1.3) and (self.arduino_lotus.must_start_sequence == False):
-                sleep(.1)
+        # if level==1:
+        #     tic = time()
+        #     while (time() - tic < 1.3) and (self.arduino_lotus.must_start_sequence == False):
+        #         sleep(.1)
 
-        elif level==2:
-            tic = time()
-            while (time() - tic < .3) and (self.arduino_lotus.must_start_sequence == False):
-                sleep(.1)
+        # elif level==2:
+        #     tic = time()
+        #     while (time() - tic < .3) and (self.arduino_lotus.must_start_sequence == False):
+        #         sleep(.1)
 
 
-        g_par_1000.kill()
-        g_bandeau.kill()
+
+        sleep(.1)
+
+        # g_par_1000.kill()
+
         # g_bandeau_g.kill()
         # g_bandeau_b.kill()
         # dmx.valeur([2, 7, PARLED_3.r, PARLED_4.r, PAR_1000], [0,0,0,0,0])
@@ -313,13 +336,12 @@ class Effets():
         # print("\nblackout")
         dmx_streamer.kill()
 
+            
+
 
     def sequence_intro_caverne(self, ref_thread_events):
 
-        audio_intro(ref_thread_events=ref_thread_events)
-
         dmx_frame, priority_dmx_frame, dmx_streamer = init_dmx(arduino_dmx=self.arduino_dmx, max_dmx_channels=30)
-        # dmx_streamer = gevent.spawn(send_serial, self.arduino_dmx, 0.03)
 
 
         # g_parled_1 = gevent.spawn(constants, dmx_frame, PARLED_1.rgb, bleu_turquoise)
@@ -329,44 +351,16 @@ class Effets():
 
 
         while not(ref_thread_events.thread_ultrasonics.visitors_detected):
-            # g_bandeau.extend( dmx.multi(0, dmx.lotus_oscillations_intro, [BANDEAU_LED.r]))
+        # while not(ref_thread_events.thread_lotus.must_start_sequence):
+            # print type(ref_thread_events.thread_lotus.must_start_sequence), ref_thread_events.thread_lotus.must_start_sequence
             g_bandeau = gevent.spawn(intro_lotus_oscillations, dmx_frame, BANDEAU_LED.r)
             gevent.joinall([g_bandeau])
+            # # pour interrompre la séquence d'intro immédiatement lorsqu'un visiteur est détécté. à priori ce n'est pas ce que l'on veut !
             # while (len(gevent.joinall(g_bandeau)) != len(g_bandeau)):
             #     if ref_thread_events.thread_ultrasonics.visitors_detected:
             #         break
-                
 
-
-            # while (len(gevent.joinall(g_bandeau, timeout=0)) != len(g_bandeau)):
-            #     if ref_thread_events.thread_ultrasonics.visitors_detected:
-            #         break
-
-        # pouet = gevent.spawn(dmx.constant, [BANDEAU_LED.r], 0)
-        # gevent.joinall(pouet)
-        # print("COUCOU")
-        # g_bandeau.kill()
-        # gg = gevent.spawn(dmx.constant, BANDEAU_LED.r, 0)
-        
-        audio_stop("intro")
-        # parleds = gevent.spawn(dmx.constant, PARLED_1.r, 0)
-        # parleds = gevent.spawn(dmx.constant, PARLED_1.g, 0)
-        # parleds = gevent.spawn(dmx.constant, PARLED_1.b, 0)
-
-        # parleds = gevent.spawn(dmx.constant, PARLED_2.r, 0)
-        # parleds = gevent.spawn(dmx.constant, PARLED_2.g, 0)
-        # parleds = gevent.spawn(dmx.constant, PARLED_2.b, 0)
-        # g_bandeau = []
-
-        # parleds = gevent.spawn(dmx.constant, PARLED_3.r, 0)
-        # parleds = gevent.spawn(dmx.constant, PARLED_3.g, 0)
-        # parleds = gevent.spawn(dmx.constant, PARLED_3.b, 0)
-
-        # parleds = gevent.spawn(dmx.constant, PARLED_4.r, 0)
-        # parleds = gevent.spawn(dmx.constant, PARLED_4.g, 0)
-        # parleds = gevent.spawn(dmx.constant, PARLED_4.b, 0)
-
-        # sleep(1)
+        sleep(1)
 
         g_bandeau.kill()
         # g_parled_1.kill()

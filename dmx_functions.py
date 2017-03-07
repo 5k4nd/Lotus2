@@ -45,7 +45,8 @@ def init_dmx(arduino_dmx, max_dmx_channels):
         dmx_frame[i] = [0]*2
         priority_dmx_frame[i] = [-1]*2
 
-    dmx_streamer = gevent.spawn(send_serial, arduino_dmx, 0.02, dmx_frame, priority_dmx_frame)
+    # dmx_streamer = gevent.spawn(send_serial, arduino_dmx, 0.02, dmx_frame, priority_dmx_frame)
+    dmx_streamer = 'foobar'
     return dmx_frame, priority_dmx_frame, dmx_streamer
 
 def send_serial(arduino_dmx, pause, dmx_frame, priority_dmx_frame):
@@ -277,71 +278,98 @@ def intro_lotus_oscillations(dmx_frame, bandeau_led):
 
 
     # constantes pour tests
-    # dmx_frame[bandeau_led][0] = 0
-    # dmx_frame[bandeau_led+1][0] = 0
-    # dmx_frame[bandeau_led+2][0] = 0
+    dmx_frame[bandeau_led][0] = 70
+    dmx_frame[bandeau_led+1][0] = 70
+    dmx_frame[bandeau_led+2][0] = 70
+    sleep(.001)
 
 
-    # boucle d'oscillation ascendante 1
-    for i in range(val_dep, val_intermediaire, pas_rapide):
-        dmx_frame[bandeau_led][0] = i
-        dmx_frame[bandeau_led+1][0] = i / green_divider
-        dmx_frame[bandeau_led+2][0] = i / blue_divider
-        gevent.sleep(pause_rapide)
-        print i, i / green_divider, i / blue_divider
+    # # boucle d'oscillation ascendante 1
+    # for i in range(val_dep, val_intermediaire, pas_rapide):
+    #     dmx_frame[bandeau_led][0] = i
+    #     dmx_frame[bandeau_led+1][0] = i / green_divider
+    #     dmx_frame[bandeau_led+2][0] = i / blue_divider
+    #     gevent.sleep(pause_rapide)
 
-    # boucle d'oscillation ascendante 2
-    for i in range(val_intermediaire, r, pas):
-        dmx_frame[bandeau_led][0] = i
-        dmx_frame[bandeau_led+1][0] = i / green_divider
-        dmx_frame[bandeau_led+2][0] = i / blue_divider
-        gevent.sleep(pause)
-        print i, i / green_divider, i / blue_divider
+    # # boucle d'oscillation ascendante 2
+    # for i in range(val_intermediaire, r, pas):
+    #     dmx_frame[bandeau_led][0] = i
+    #     dmx_frame[bandeau_led+1][0] = i / green_divider
+    #     dmx_frame[bandeau_led+2][0] = i / blue_divider
+    #     gevent.sleep(pause)
 
 
-    gevent.sleep(2)
+    # gevent.sleep(2)
 
-    # boucle d'oscillation descendante 1
-    for i in range(r, val_intermediaire, -pas):
-        dmx_frame[bandeau_led][0] = i
-        dmx_frame[bandeau_led+1][0] = i / green_divider
-        dmx_frame[bandeau_led+2][0] = i / blue_divider
-        gevent.sleep(pause)
-        print i, i / green_divider, i / blue_divider
+    # # boucle d'oscillation descendante 1
+    # for i in range(r, val_intermediaire, -pas):
+    #     dmx_frame[bandeau_led][0] = i
+    #     dmx_frame[bandeau_led+1][0] = i / green_divider
+    #     dmx_frame[bandeau_led+2][0] = i / blue_divider
+    #     gevent.sleep(pause)
     
-    # boucle d'oscillation descendante 2
-    for i in range(val_intermediaire, val_dep, -pas_rapide):
+    # # boucle d'oscillation descendante 2
+    # for i in range(val_intermediaire, val_dep, -pas_rapide):
+    #     dmx_frame[bandeau_led][0] = i
+    #     dmx_frame[bandeau_led+1][0] = i / green_divider
+    #     dmx_frame[bandeau_led+2][0] = i / blue_divider
+    #     gevent.sleep(pause_rapide)
+
+
+def intro_battement(dmx_frame, bandeau_led, ref_must_start_sequence, level):
+    """
+        le mieux dans cette fonction, c'est de faire varier le "rythme cardiaque"
+        avec sleep_oscillation. comme ça le battement en tant que tel est calé sur
+        le son, c'est plus simple. ;-)
+    """
+    if level == 1:
+        sleep_oscillation = .1
+    if level == 2:
+        sleep_oscillation = .02
+   
+    duree = 0.35
+    min_value = 60
+    max_value = 250
+    inter_value = 30
+    pas = 8
+    pause = .005
+
+
+    # palpitation
+    for i in range(min_value, max_value, pas):
         dmx_frame[bandeau_led][0] = i
-        dmx_frame[bandeau_led+1][0] = i / green_divider
-        dmx_frame[bandeau_led+2][0] = i / blue_divider
-        gevent.sleep(pause_rapide)
-        print i, i / green_divider, i / blue_divider
-
-
-def intro_battement(self, channels, duree, val_dep, val_fin, pas, t = 0):
-    global trame
-    
-    trame[PARLED_4.g][0] =  0
-    trame[PARLED_4.b][0] =  0
-
-    pause = (float(duree)/abs(val_dep-val_fin))*float((pas/2))
-    if val_dep > val_fin :
-        valeurs = range(val_dep,val_fin, -pas)
-    else : valeurs = range(val_dep, val_fin, pas)
-    valeurs1 = range(val_dep, val_fin, pas*2)
-    for i in valeurs:
-        if i <= pas :
-            trame[channels][t] =  0
-        else :
-            trame[channels][t] =  i
         gevent.sleep(pause)
 
-    for i in reversed(valeurs1):
-        if i <= pas*2 :
-            trame[channels][t] =  0
-        else :
-            trame[channels][t] =  i
+    for i in range(max_value, min_value, -pas):
+        dmx_frame[bandeau_led][0] = i
         gevent.sleep(pause)
+
+
+    # oscillation lente
+    for i in range(min_value, inter_value, -2):
+        dmx_frame[bandeau_led][0] = i
+        gevent.sleep(sleep_oscillation)
+
+    for i in range(inter_value, min_value, 2):
+        dmx_frame[bandeau_led][0] = i
+        gevent.sleep(sleep_oscillation)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class DMX():

@@ -37,7 +37,7 @@ from sys import exc_info
 
 from dmx_functions import DMX
 from effets import Effets
-from audio_functions import audio_bell, audio_stop
+from audio_functions import *
 
 
 
@@ -55,15 +55,18 @@ class Thread_Lotus(Thread):
             'capacitor_ground': -1,
             'capacitor_value': -1
         }
+        self.must_start_sequence_tampon = 0
         self.must_start_sequence = False
 
 
     def run(self):
         """
-        cette boucle tourne en boucle. peut être utile pour effectuer des
-        opérations périodiques (de la transformation de données en temps-réel
-            par exemple).
-        elle teste notamment le CAPTEUR CAPACITIF, qui fait un front montant pendant 1 seconde lorsqu'il est touché
+        cette fonction tourne en boucle, car elle est inclue dans un thread. ça
+        peut être utile pour effectuer des opérations périodiques (de la transformation
+            de données en temps-réel par exemple).
+
+        elle teste notamment le CAPTEUR CAPACITIF, qui fait un front montant pendant
+        1 seconde (100 * 0.1 secondes) lorsqu'il est touché.
         """
         while 1:
             sleep(.01)
@@ -90,20 +93,27 @@ class Thread_Lotus(Thread):
                 delta = 400
                 # note : baisser delta pour plus de réactivité, l'augmenter si le lotus se déclenche tout seul ! :-)
                 if (self.data['capacitor_value'] > (self.data['capacitor_ground'] + delta)):
-                    print("capacitif touché à %s" % self.data['capacitor_value'])
+                    self.must_start_sequence_tampon = 1000
                     self.must_start_sequence = True
-                    self.must_start_effet = True
+                    print("MUST START SEQUENCE à %s" % self.data['capacitor_value'])
 
-                    # on vide le buffer
+                    # buffer cleaning
                     tic = time()
                     while (time() - tic < 1):
                         self.arduino_lotus.readline()
                 else:
-                    self.must_start_sequence = False
+                    if self.must_start_sequence_tampon>0:
+                        self.must_start_sequence_tampon -= 1
+                    elif self.must_start_sequence_tampon==0:
+                        self.must_start_sequence = False
+                        # print "MUST START SEQUENCE is FALSE"
+
 
 
             except:
                 # quelle que soit l'erreur (formatage des donnees, valeurs aberrantes, etc.) on passe
+                # print exc_info()
+                # print exc_info()[-1].tb_lineno
                 pass
 
 
@@ -187,45 +197,65 @@ class Thread_Events(Thread):
             'battement': False,
             'sequence': False
         }
-        # self.dmx = DMX()
+
         self.effets = Effets(self.arduino_dmx, self.thread_ultrasonics, self.thread_lotus)
+
+        ## pour l'audio
+        self.medias = [
+            os.path.expanduser("data/audio/intro/Those_Were_Good_Times.mp3"),
+            os.path.expanduser("data/audio/intro/lotus_battement.wav"),
+            os.path.expanduser("data/audio/sequences/2_sirenes_170102.wav"),
+        ]
 
 
     def run(self):
         """
             ATTENTION cette boucle contient des opérations bloquantes
             DONC attention ne pas y placer d'opérations périodiques !
+
+            Elle manipule également les fichiers audio, qu'elle démarre avant
+            chaque séquence d'effets DMX.
+
+            Au cas où le code ci-dessous et ses conditions if ne seraient pas
+            claires, voici les états possibles du système :
+
+                INTRO -> capteurs_de_distance -> BATTEMENT -> lotus_tactile -> SÉQUENCE -> environ 2 minutes -> INTRO
+        
+
         """
         while 1:
             sleep(.01)
 
             try:
                 ## BATTEMENT
-                if self.thread_ultrasonics.visitors_detected or self.state['battement']:
+                if self.thread_ultrasonics.visitors_detected or self.state['battement'] or 1:
                     self.state['battement'] = True
                     self.state['intro'] = False
-                    print("MAIN: start battement")
-                    self.effets.battement_de_coeur(ref_thread_events=self)
+                    print "MAIN: start battement"
+                    audio_battement(level=level, ref_thread_events=ref_thread_events)
+                    # self.effets.battement_de_coeur(ref_thread_events=self)
+                    # self.effets.sequence_intro_caverne(ref_thread_events=self)
+
                 
                     ## SEQUENCE
                     if self.thread_lotus.must_start_sequence:
                         self.state['battement'] = False
                         self.state['sequence'] = True
                         print("MAIN: start sequence")
-                        self.effets.sequence(ref_thread_events=self)
-
+                        # self.effets.sequence(ref_thread_events=self)
                         print("MAIN: on reset le visitors_detected à FALSE")
                         self.thread_ultrasonics.visitors_detected = False
 
                 else:
                     ## INTRO
                     print("MAIN: start intro")
-                    self.effets.sequence_intro_caverne(ref_thread_events=self)
+                    audio_intro(ref_thread_events=ref_thread_events)
+                    # self.effets.sequence_intro_caverne(ref_thread_events=self)
 
 
             except exc_info():
-            #     print exc_info()
-            #     print exc_info()[-1].tb_lineno
+                print exc_info()
+                print exc_info()[-1].tb_lineno
                 pass
 
 
@@ -234,12 +264,13 @@ class Thread_Events(Thread):
 if __name__ == '__main__':
     try:
         # signal spécifiant que le système est démarré et sera opérationnel d'ici quelques secondes
+        # à réparer car obsolète depuis le clean sur audio_functions.py
         # audio_bell()
         # sleep(1)
 
         # on ouvre le port d'écoute de l'arduino MEGA qui écoute les 2 ultrasons de détection de passage
-        arduino_ultrasonics = serial.Serial(MEGA_ULTRASONICS, 115200)
-        # arduino_ultrasonics = "foobar"
+        # arduino_ultrasonics = serial.Serial(MEGA_ULTRASONICS, 115200)
+        arduino_ultrasonics = 'foobar'
 
         # on démarre le thread associé
         thread_ultrasonics = Thread_Ultrasonics(arduino_ultrasonics)
@@ -247,8 +278,8 @@ if __name__ == '__main__':
 
 
         # on ouvre le port d'écoute de l'arduino MEGA qui écoute le lotus
-        arduino_lotus = serial.Serial(MEGA_CAPACITOR, 115200)
-        # arduino_lotus = "foobar"
+        # arduino_lotus = serial.Serial(MEGA_CAPACITOR, 115200)
+        arduino_lotus = 'foobar'
 
         # on démarre le thread associé
         thread_lotus = Thread_Lotus(arduino_lotus)
@@ -260,8 +291,8 @@ if __name__ == '__main__':
         sleep(1)
 
         # on ouvre le port d'écoute de l'arduino UNO-DMX
-        arduino_dmx = serial.Serial(UNO_DMX, 115200)
-        # arduino_dmx = "foobar"
+        # arduino_dmx = serial.Serial(UNO_DMX, 115200)
+        arduino_dmx = 'foobar'
 
         # on démarre le thread associé
         try:
@@ -274,7 +305,7 @@ if __name__ == '__main__':
         print 'MAIN: problème d\'INIT des threads'
         print exc_info()
         print exc_info()[-1].tb_lineno
-        pass
+        # pass
 
 
     try:

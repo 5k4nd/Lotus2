@@ -52,3 +52,6 @@ installer les modules python :
 
 pour sortir du virtualenv :
   deactivate
+
+Cette application nécessite d'avoir vlc (ou cvlc, i.e. sans interface graphique) installé pour manipuler et jouer les fichiers audio.
+

@@ -1,198 +1,126 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-oui ce fichier est crade mais ça marche, et normalement vous devriez pas avoir
-à mettre les mains dedans donc la flem de cleaner :-)
-ToDo:
-    - corriger le fait que j'ai actuellement une instance par fichier. c'est pratique
-        mais franchement : NON, ça se fait pas !
+
+Le principe de ce module est simple.
+1) On crée une instance VLC : instance.
+2) On crée un lecteur de média vlc : player. Il contient notammement les
+    contrôles de volume, le périphérique audio, etc.
+3) On crée un lecteur de liste de lecture : media_player. Il contient les
+    médias et les contrôle start, pause, loop, etc.
+4) On link player et media_player.
+
+Remarque : je concède que dissocier le media_player et le mediaplayer n''est
+pas hyper intuitif mais c'est un choix des gars de chez VLC. ;-)
+
+
+ATTENTION, l'api vlc gère mal la fin d'un stream par défaut (génère des
+    exceptions non gérées). moi je m'en sors en répétant éternellement ma liste
+    de lecture mais soyez prudents.
+
+
+Bapt, mars 2017.
+
 """
 
 from vlc import *
 from time import sleep
 
-from threading import Thread
-from sys import exc_info
 
-
-try:
-    from msvcrt import getch
-except ImportError:
-    import termios
-    import tty
-
-    def getch():  # getchar(), getc(stdin)  #PYCHOK flake
-        fd = sys.stdin.fileno()
-        old = termios.tcgetattr(fd)
-        try:
-            tty.setraw(fd)
-            ch = sys.stdin.read(1)
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old)
-        return ch
-
-def end_callback(event):
-    print('End of media stream (event %s)' % event.type)
-    sys.exit(0)
-
-echo_position = False
-def pos_callback(event, player):
-    if echo_position:
-        sys.stdout.write('\r%s to %.2f%% (%.2f%%)' % (event.type,
-                                                      event.u.new_position * 100,
-                                                      player.get_position() * 100))
-        sys.stdout.flush()
-
-
-
-
-
-
-
-
-### CONSTRUCTION DES INSTANCES SONORES
-
-### le battement de coeur
-filename = os.path.expanduser("data/audio/battement/battement_double2.wav")
-# Need --sub-source=marq in order to use marquee below
-instance = Instance(["--sub-source=marq"] + sys.argv[1:])
-try:
-    media = instance.media_new(filename)
-except (AttributeError, NameError) as e:
-    print('%s: %s (%s %s vs LibVLC %s)' % (e.__class__.__name__, e,
-                                           sys.argv[0], __version__,
-                                           libvlc_get_version()))
-    sys.exit(1)
-player_battement = instance.media_player_new()
-
-
-def audio_battement(level, ref_thread_events):
-    """
-    c'est le bordel cette méthode, faudrait nettoyer ! :p
-    """
-    
-    print("AUDIO: début BATTEMENT")
-    # ## si on arrive de la séquence on fait une transition en douceur :-)
-    # player_intro.stop()
-    # if ref_thread_events.state['sequence']:
-    #     for i in range(100,50,-2):
-    #         # print(i)
-    #         # sleep(.02)
-    #         player_sequence.audio_set_volume(i)
-    #         audio_stop(2)
-    #     player_sequence.audio_set_volume(0)
-    #     ref_thread_events.state['sequence'] = False
-    # # elif ref_thread_events.state['intro']:
-    # #     ref_thread_events.state['intro'] = False
-    # else:
-    player_battement.audio_set_volume(100)
-    player_battement.set_media(media)
-    player_battement.play()
-
-
-
-
-### séquence des sirènes
-filename2 = os.path.expanduser("data/audio/sequences/2_sirenes_1222.wav")
-instance2 = Instance(["--sub-source=marq"] + sys.argv[1:])
-try:
-    media2 = instance2.media_new(filename2)
-except (AttributeError, NameError) as e:
-    print('%s: %s (%s %s vs LibVLC %s)' % (e.__class__.__name__, e,
-                                           sys.argv[0], __version__,
-                                           libvlc_get_version()))
-    sys.exit(1)
-player_sequence = instance2.media_player_new()
-
-
-def audio_sequence(ref_thread_events):
-    # audio_stop()
-        
-    ref_thread_events.state['sequence'] = True
-    print("AUDIO: début SEQUENCE")
-    player_sequence.audio_set_volume(60)
-    player_sequence.set_media(media2)
-    player_sequence.play()
-
-
-
-
-### la cloche de début
-filename3 = os.path.expanduser("data/audio/bell2.mp3")
-instance3 = Instance(["--sub-source=marq"] + sys.argv[1:])
-try:
-    media3 = instance3.media_new(filename3)
-except (AttributeError, NameError) as e:
-    print('%s: %s (%s %s vs LibVLC %s)' % (e.__class__.__name__, e,
-                                           sys.argv[0], __version__,
-                                           libvlc_get_version()))
-    sys.exit(1)
-player3 = instance3.media_player_new()
-
-
-
-def audio_bell():
-    player3.audio_set_volume(100)
-    player3.set_media(media3)
-    player3.play()
-
-
-
-
-### sequence initiale
-filename4 = os.path.expanduser("/media/media/Abelum/Lotus/code/data/audio/intro/Those_Were_Good_Times.mp3")
-instance4 = Instance(["--sub-source=marq"] + sys.argv[1:])
-try:
-    media4 = instance4.media_new(filename4)
-except (AttributeError, NameError) as e:
-    print('%s: %s (%s %s vs LibVLC %s)' % (e.__class__.__name__, e,
-                                           sys.argv[0], __version__,
-                                           libvlc_get_version()))
-    sys.exit(1)
-player_intro = instance4.media_player_new()
-
-
-
-def audio_intro(ref_thread_events):
-    print("AUDIO: début séquence CAVERNE")
-    player_intro.audio_set_volume(50)
-    player_intro.set_media(media4)
-    player_intro.play()
-
-
-
-
-
-
-
-
-def audio_stop(var):
-    if var=="sequence":
-        player_sequence.stop()
-    elif var=="intro":
-        player_intro.stop()
+def fade_volume(start, end):
+    if start<end:
+        pas =1
     else:
-        player_battement.stop()
-        player_battement.audio_set_volume(0)
+        pas =-1
+    for i in range(start, end, pas):
+            sleep(.001)
+            player.audio_set_volume(i)
+
+def audio_init(medias):
+    # on crée l'instance vlc. elle peut et devrait être singleton !
+    instance = Instance(medias)
+    player = instance.media_player_new()
+
+    medialist = instance.media_list_new()
+    for media in medias: 
+        medialist.add_media(instance.media_new(media))
+
+    media_player = instance.media_list_player_new()
+    media_player.set_media_player(player)
+    media_player.set_media_list(medialist)
+
+    return player, media_player
+
+
+def start_intro_first_time(player, media_player):
+    """
+        au lancement de l'appli, lors de la première boucle.
+    """
+    player.audio_set_volume(30)
+    media_player.play()
+
+    # attention, doit être appelée après le play(), wouais c'est bizarre :/
+    media_player.set_playback_mode(PlaybackMode.repeat)
+
+
+def start_battement(player, media_player):
+    # attention, on ne doit plus boucler pour passer au battement
+    media_player.set_playback_mode(PlaybackMode.default)
+
+    # on baisse le volume
+    
+    fade_volume(30, 0)
+    media_player.next()
+    fade_volume(0, 150)
+
+    # on boucle à nouveau, sur le battement
+    media_player.set_playback_mode(PlaybackMode.repeat)
+
+
+def start_sequence(player, media_player):
+    # pour reboucler sur l'intro à la fin de la séquence
+    media_player.set_playback_mode(PlaybackMode.default)
+
+    fade_volume(150, 0)
+    media_player.next()
+    fade_volume(0, 50)
+    print("AUDIO: fin sequence")
+
+
+def start_intro_loop(player, media_player):
+    """
+        lorsque l'intro se lance après une première exécution complète du programme,
+        donc après la séquence.
+    """
+    ## on loope, pour repartir vers l'INTRO
+    media_player.set_playback_mode(PlaybackMode.loop)
+    fade_volume(50, 0)
+    media_player.next()
+    fade_volume(0, 30)
 
 
 
 if __name__ == '__main__':
+    medias = [
+        os.path.expanduser("data/audio/intro/Those_Were_Good_Times.mp3"),
+        os.path.expanduser("data/audio/intro/lotus_battement.wav"),
+        os.path.expanduser("data/audio/sequences/2_sirenes_170102.wav"),
+    ]
 
-    sleep(1)
-    player_sequence.set_media(media2)
-    player_sequence.play()
-    # print import pprin
-    print(dir(player_sequence))
-    raw_input()
-    player_sequence.audio_set_volume(0)
-    raw_input()
-    player_sequence.audio_set_volume(100)
-    raw_input()
-    # sleep(1.2)
-    # player_sequence.set_media(media2)
-    # player_sequence.play()
+    player, media_player = audio_init(medias)
+
+    start_intro_first_time(player, media_player)
+    sleep(3)
+    while 1:
+        start_battement(player, media_player)
+        sleep(1)
+
+        start_sequence(player, media_player)
+        sleep(4)
+
+        start_intro_loop(player, media_player)
+        sleep(3)
 
     # event_manager = player_battement.event_manager()
     # event_manager.event_attach(EventType.MediaPlayerEndReached,      end_callback)
-# event_manager.event_attach(EventType.MediaPlayerPositionChanged, pos_callback, player_battement)
+    # event_manager.event_attach(EventType.MediaPlayerPositionChanged, pos_callback, player_battement)
