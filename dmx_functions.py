@@ -40,10 +40,10 @@ def init_dmx(arduino_dmx, max_dmx_channels):
     MAX_DMX_CHANNELS = max_dmx_channels
 
     dmx_frame          = [0]*MAX_DMX_CHANNELS
-    priority_dmx_frame = [0]*MAX_DMX_CHANNELS  # convention : la valeur par défaut du dmx_frame à haut niveau de priorité est -1
-    for i in range(0,len(dmx_frame)):
-        dmx_frame[i] = [0]*2
-        priority_dmx_frame[i] = [-1]*2
+    priority_dmx_frame = [-1]*MAX_DMX_CHANNELS  # convention : la valeur par défaut du dmx_frame à haut niveau de priorité est -1
+    # for i in range(0,len(dmx_frame)):
+    #     dmx_frame[i] = [0]*2
+        # priority_dmx_frame[i] = [-1]*2
 
     dmx_streamer = gevent.spawn(send_serial, arduino_dmx, 0.02, dmx_frame, priority_dmx_frame)
     # dmx_streamer = 'foobar'
@@ -63,10 +63,10 @@ def send_serial(arduino_dmx, pause, dmx_frame, priority_dmx_frame):
         nb_canaux = len(dmx_frame)
         trame_envoi = ""
         for i in range(0, nb_canaux):
-            if priority_dmx_frame[i][0] != -1:
-                e = priority_dmx_frame[i][0]
+            if priority_dmx_frame[i] != -1:
+                e = priority_dmx_frame[i]
             else:
-                e = dmx_frame[i][0]
+                e = dmx_frame[i]
             trame_envoi = trame_envoi + str(i) + "c" + str(e) + "w"
         arduino_dmx.write(trame_envoi)
         gevent.sleep(pause)
@@ -74,9 +74,9 @@ def send_serial(arduino_dmx, pause, dmx_frame, priority_dmx_frame):
 
 def dmx_high_priority_overrider(priority_dmx_frame, overrided_channels, run):
     if run:
-        for channel in overrided_channels: priority_dmx_frame[channel][0] = 0
+        for channel in overrided_channels: priority_dmx_frame[channel] = 0
     else:
-        for channel in overrided_channels: priority_dmx_frame[channel][0] = -1
+        for channel in overrided_channels: priority_dmx_frame[channel] = -1
 
 
 
@@ -106,9 +106,9 @@ def fade_up(dmx_frame, channel, duration, val_dep, val_fin, pas, t=0):
         if idx > 0:
             gevent.sleep(pause)
         if i + pas > val_fin:  # car range ne permet pas toujours d'aller au bout
-            dmx_frame[channel][t] = val_fin
+            dmx_frame[channel] = val_fin
         else:
-            dmx_frame[channel][t] = i
+            dmx_frame[channel] = i
 
     if float(time()-tic) > float(duration):
         print "EFFET WARNING: fade up down trop long %s au lieu de %s" % (round(time()-tic, 2), duration)
@@ -127,10 +127,10 @@ def fade_down(dmx_frame, channels, duration, val_dep, val_fin, pas, t=0):
         if idx > 0:
             gevent.sleep(pause)
         if i - pas < val_fin:  # car range ne permet pas toujours d'aller au bout
-            dmx_frame[channels][t] = val_fin
+            dmx_frame[channels] = val_fin
         else:
-            dmx_frame[channels][t] = i
-        # print dmx_frame[channels][t]
+            dmx_frame[channels] = i
+        # print dmx_frame[channels]
 
     if float(time()-tic) > float(duration):
         print "EFFET WARNING: fade down trop long %s au lieu de %s (channels %s)" % (round(time()-tic, 2), duration, channels)
@@ -158,13 +158,13 @@ def fade_up_down(dmx_frame, channel, duration, val_dep, val_fin, pas, timeout=No
             # nécessaire pour ne pas faire le dernier sleep de la boucle
             if idx > 1:
                 gevent.sleep(pause)
-            dmx_frame[channel][0] = value
+            dmx_frame[channel] = value
 
         for idx, value in enumerate(reversed(values)):
             # if (time() - tic > timeout) : return 0
             if idx > 1:
                 gevent.sleep(pause)
-            dmx_frame[channel][0] =  value
+            dmx_frame[channel] =  value
         
         # if we have to follow a timeout parameter
         if timeout:
@@ -186,13 +186,13 @@ def strobe(dmx_frame, channels, duration, lower_value, upper_value, freq):
     tic = time()
     while 1:
         for channel in channels:
-            dmx_frame[channel][0] = upper_value
+            dmx_frame[channel] = upper_value
         # gevent.sleep(pause)
         for channel in channels:
-            dmx_frame[channel][0] = lower_value
+            dmx_frame[channel] = lower_value
         if (time() - tic > duration) : 
             for channel in channels:
-                dmx_frame[channel][0] = 0
+                dmx_frame[channel] = 0
             return 0
         # gevent.sleep(pause)
         
@@ -207,7 +207,7 @@ def constants(dmx_frame, channels, values):
         # then our user, just pass a single value for all channels
         values = values*len(channels)    
     for idx, channel in enumerate(channels):
-        dmx_frame[channel][0] = values[idx]
+        dmx_frame[channel] = values[idx]
     gevent.sleep(1)
 
 
@@ -218,19 +218,17 @@ def blackout(dmx_frame, channels=None):
 
     if channels is None:
         for dmx_channel in range(1, equipment_adresse_max+1):
-            dmx_frame[dmx_channel][0] = 0
-        # gevent.sleep(1)
+            dmx_frame[dmx_channel] = 0
     else:
         for dmx_channel in channels:
-            dmx_frame[dmx_channel][0] = 0
-        # gevent.sleep(1)
+            dmx_frame[dmx_channel] = 0
 
 
 # def valeur(self, channels, values):
 #     global trame
 #     j = 0
 #     for i in channels:
-#         trame[i][0] = values[j]
+#         trame[i] = values[j]
 #         j += 1
 
 
@@ -280,24 +278,24 @@ def intro_lotus_oscillations(dmx_frame, bandeau_led):
 
 
     # # constantes pour tests
-    # dmx_frame[bandeau_led][0] = 70
-    # dmx_frame[bandeau_led+1][0] = 70
-    # dmx_frame[bandeau_led+2][0] = 70
+    # dmx_frame[bandeau_led] = 70
+    # dmx_frame[bandeau_led+1] = 70
+    # dmx_frame[bandeau_led+2] = 70
     # sleep(.001)
 
 
     # boucle d'oscillation ascendante 1
     for i in range(val_dep, val_intermediaire, pas_rapide):
-        dmx_frame[bandeau_led][0] = i
-        dmx_frame[bandeau_led+1][0] = i / green_divider
-        dmx_frame[bandeau_led+2][0] = i / blue_divider
+        dmx_frame[bandeau_led] = i
+        dmx_frame[bandeau_led+1] = i / green_divider
+        dmx_frame[bandeau_led+2] = i / blue_divider
         gevent.sleep(pause_rapide)
 
     # boucle d'oscillation ascendante 2
     for i in range(val_intermediaire, r, pas):
-        dmx_frame[bandeau_led][0] = i
-        dmx_frame[bandeau_led+1][0] = i / green_divider
-        dmx_frame[bandeau_led+2][0] = i / blue_divider
+        dmx_frame[bandeau_led] = i
+        dmx_frame[bandeau_led+1] = i / green_divider
+        dmx_frame[bandeau_led+2] = i / blue_divider
         gevent.sleep(pause)
 
 
@@ -305,16 +303,16 @@ def intro_lotus_oscillations(dmx_frame, bandeau_led):
 
     # boucle d'oscillation descendante 1
     for i in range(r, val_intermediaire, -pas):
-        dmx_frame[bandeau_led][0] = i
-        dmx_frame[bandeau_led+1][0] = i / green_divider
-        dmx_frame[bandeau_led+2][0] = i / blue_divider
+        dmx_frame[bandeau_led] = i
+        dmx_frame[bandeau_led+1] = i / green_divider
+        dmx_frame[bandeau_led+2] = i / blue_divider
         gevent.sleep(pause)
     
     # boucle d'oscillation descendante 2
     for i in range(val_intermediaire, val_dep, -pas_rapide):
-        dmx_frame[bandeau_led][0] = i
-        dmx_frame[bandeau_led+1][0] = i / green_divider
-        dmx_frame[bandeau_led+2][0] = i / blue_divider
+        dmx_frame[bandeau_led] = i
+        dmx_frame[bandeau_led+1] = i / green_divider
+        dmx_frame[bandeau_led+2] = i / blue_divider
         gevent.sleep(pause_rapide)
 
 
@@ -340,24 +338,24 @@ def intro_battement(dmx_frame, bandeau_led, ref_must_start_sequence, level):
     # palpitation
     for i in range(min_value, max_value, pas):
         print i
-        dmx_frame[bandeau_led][0] = i
+        dmx_frame[bandeau_led] = i
         gevent.sleep(pause)
 
     for i in range(max_value, min_value, -pas):
         print i
-        dmx_frame[bandeau_led][0] = i
+        dmx_frame[bandeau_led] = i
         gevent.sleep(pause)
 
 
     # # oscillation lente
     # for i in range(min_value, inter_value, -2):
     #     print i
-    #     dmx_frame[bandeau_led][0] = i
+    #     dmx_frame[bandeau_led] = i
     #     gevent.sleep(sleep_oscillation)
 
     # for i in range(inter_value, min_value, 2):
     #     print i
-    #     dmx_frame[bandeau_led][0] = i
+    #     dmx_frame[bandeau_led] = i
     #     gevent.sleep(sleep_oscillation)
 
 
@@ -401,9 +399,9 @@ class DMX():
 
         for i in range(0, r, 3):
             # print i
-            trame[dmx_adress][0] = i*pas_r
-            trame[dmx_adress+1][0] = i*pas_g
-            trame[dmx_adress+2][0] = i*pas_b
+            trame[dmx_adress] = i*pas_r
+            trame[dmx_adress+1] = i*pas_g
+            trame[dmx_adress+2] = i*pas_b
             print i*pas_r, i*pas_g, i*pas_b
             gevent.sleep(.04)
         
@@ -449,10 +447,10 @@ class DMX():
     #         valeurs = range(val_dep,val_fin, -pas)
     #     else : valeurs = range(val_dep, val_fin, pas)
     #     for i in valeurs:
-    #         trame[canal][t] =  i
+    #         trame[canal] =  i
     #         gevent.sleep(pause)
     #     for i in reversed(valeurs):
-    #         trame[canal][t] =  i
+    #         trame[canal] =  i
     #         gevent.sleep(pause)
   
   
@@ -465,11 +463,11 @@ class DMX():
     #     tic = time()
     #     while 1:
     #         for i in valeurs:
-    #             trame[canal][t] =  i
+    #             trame[canal] =  i
     #             if (time() - tic > timeout) : return 0
     #             gevent.sleep(pause)
     #         for i in reversed(valeurs):
-    #             trame[canal][t] =  i
+    #             trame[canal] =  i
     #             if (time() - tic > timeout) : return 0
     #             gevent.sleep(pause)
 
@@ -491,7 +489,7 @@ class DMX():
     #     for i in valeurs:
     #         if i<=pas :
     #             i=0
-    #         trame[channels][t] =  i
+    #         trame[channels] =  i
     #         gevent.sleep(pause)
 
 
@@ -645,9 +643,9 @@ class DMX():
 #             # if interrup[i] == 1:
 #             #     e = dmx_frame[i][1]
 #             # elif interrup[i] == 2 :
-#             #     e = max(dmx_frame[i][0], dmx_frame[i][1])
+#             #     e = max(dmx_frame[i], dmx_frame[i][1])
 #             # else :
-#             e = dmx_frame[i][0]
+#             e = dmx_frame[i]
 #             trame_envoi = trame_envoi + str(i) + "c" + str(e) + "w"
 #         arduino_dmx.write(trame_envoi)
 #         gevent.sleep(pause)
@@ -667,11 +665,11 @@ class DMX():
 #     for idx, value in enumerate(values):
 #         if idx > 1:  # nécessaire pour ne pas faire le dernier sleep
 #             gevent.sleep(pause)
-#             dmx_frame[channel][t] = value
+#             dmx_frame[channel] = value
 #     for (idx, i) in enumerate(reversed(values)):
 #         if idx > 1:
 #             gevent.sleep(pause)
-#         dmx_frame[channel][t] =  i
+#         dmx_frame[channel] =  i
 
 #     if float(time()-tic) > float(duration):
 #         print "EFFET WARNING: fade up down trop long %s au lieu de %s" % (round(time()-tic, 2), duration)
