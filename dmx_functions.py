@@ -37,20 +37,21 @@ from data.colors import *
 """
 
 def init_dmx(arduino_dmx, max_dmx_channels):
-    MAX_DMX_CHANNELS = max_dmx_channels
-
-    dmx_frame          = [0]*MAX_DMX_CHANNELS
-    priority_dmx_frame = [-1]*MAX_DMX_CHANNELS  # convention : la valeur par défaut du dmx_frame à haut niveau de priorité est -1
-    # for i in range(0,len(dmx_frame)):
-    #     dmx_frame[i] = [0]*2
-        # priority_dmx_frame[i] = [-1]*2
+    """
+        initialise le dmx streamer vers l'arduino. ne devrait être appelé qu'une
+        seule fois dans tout le programme.
+    
+    """
+    dmx_frame          = (max_dmx_channels-1) * [ 0]
+    priority_dmx_frame = (max_dmx_channels-1) * [-1]  # la valeur par défaut du dmx_frame à haut niveau de priorité est -1
 
     dmx_streamer = gevent.spawn(send_serial, arduino_dmx, 0.02, dmx_frame, priority_dmx_frame)
-    # dmx_streamer = 'foobar'
+
     return dmx_frame, priority_dmx_frame, dmx_streamer
 
-def send_serial(arduino_dmx, pause, dmx_frame, priority_dmx_frame):
 
+
+def send_serial(arduino_dmx, pause, dmx_frame, priority_dmx_frame):
     """
         FONCTION PRINCIPALE 
             appelée régulièrement pour créer et envoyer une nouvelle trame dmx via le port série.
@@ -70,6 +71,7 @@ def send_serial(arduino_dmx, pause, dmx_frame, priority_dmx_frame):
             trame_envoi = trame_envoi + str(i) + "c" + str(e) + "w"
         arduino_dmx.write(trame_envoi)
         gevent.sleep(pause)
+
 
 
 def dmx_high_priority_overrider(priority_dmx_frame, overrided_channels, run):

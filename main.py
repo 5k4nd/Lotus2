@@ -35,10 +35,10 @@ from threading import Thread
 from time import sleep, time
 from sys import exc_info
 
-from dmx_functions import DMX
 from effets import Effets
 from audio_functions import *
-
+from dmx_functions import init_dmx
+from data.equipment import equipment_adresse_max
 
 
 class Thread_Lotus(Thread):
@@ -90,7 +90,7 @@ class Thread_Lotus(Thread):
                         # print self.data['capacitor_value']
 
                 # si le capteur est touché, càd valeur ded pin_ground + delta
-                delta = 400
+                delta = 500
                 # note : baisser delta pour plus de réactivité, l'augmenter si le lotus se déclenche tout seul ! :-)
                 if (self.data['capacitor_value'] > (self.data['capacitor_ground'] + delta)):
                     self.must_start_sequence_tampon = 100
@@ -166,11 +166,6 @@ class Thread_Ultrasonics(Thread):
                     self.visitors_detected = True
 
 
-
-                # if "capt2" in got_ultrasonics.keys():
-                #     self.data['capt2'] = int(got_ultrasonics['capt2'])
-
-
             except:
                 #quelle que soit l'erreur (formatage des donnees, valeurs aberrantes) on passe
                 pass
@@ -189,11 +184,7 @@ class Thread_Events(Thread):
         self.arduino_dmx = ref_arduino_dmx
         self.thread_ultrasonics = thread_ultrasonics
         self.thread_lotus = thread_lotus
-
-        # la variable self.state['sequence'] est nécessaire dans audio_functions.py pour baisser proprement le volume si on sort de la séquence inopinément
-        # par exemple si le lighteux te fait finir la séquence alors que la musique est pas finie (sic).
-        # voir la méthode audio_battement() pour plus de détails
-        self.state = {
+        self.state = {  # l'état "intro" n'est pas nécessaire, cf le code plus bas
             'battement': False,
             'sequence': False
         }
@@ -206,7 +197,7 @@ class Thread_Events(Thread):
             os.path.expanduser("data/audio/intro/heartbeat.mp3"),
             os.path.expanduser("data/audio/sequences/2_sirenes_170102.wav"),
         ]
-        self.player, self.media_player = audio_init(self.medias)
+        self.player, self.media_player = audio_init(self.medias)  # singleton instances
 
 
     def run(self):
@@ -227,17 +218,21 @@ class Thread_Events(Thread):
         # try:
 
         start_intro_first_time(self.player, self.media_player)
+        dmx_frame, priority_dmx_frame, dmx_streamer = init_dmx(arduino_dmx=self.arduino_dmx, max_dmx_channels=30)
+        # remarque : le dmx_streamer ci-dessus n'est jamais killé dans le programme
 
         while 1:
             sleep(.01)
 
             ## BATTEMENT
-            if self.thread_ultrasonics.visitors_detected or self.state['battement']:
+            if self.thread_ultrasonics.visitors_detected or self.state['battement'] or 1:
                 print "MAIN: start battement (first)"
                 level = 1  # défini selon la distance des visiteurs => FIXME
                 start_battement(self.player, self.media_player, level)
                 self.state['battement'] = True
-                self.effets.battement_de_coeur(ref_thread_events=self, level=level)
+                self.effets.battement_de_coeur(self, dmx_frame, priority_dmx_frame, dmx_streamer,
+                    level=level
+                )
 
 
                 ## SEQUENCE
@@ -246,7 +241,7 @@ class Thread_Events(Thread):
                     self.state['battement'] = False
                     self.state['sequence'] = True
                     start_sequence(self.player, self.media_player)
-                    self.effets.sequence(ref_thread_events=self)
+                    self.effets.sequence(self, dmx_frame, priority_dmx_frame, dmx_streamer)
                     
                     # on reset le tout avant de revenir à l'intro
                     self.thread_ultrasonics.visitors_detected = False
@@ -254,10 +249,10 @@ class Thread_Events(Thread):
                     self.state['sequence'] = False
 
 
-            ## INTRO
             else:
+                ## INTRO
                 print("MAIN: start intro")
-                self.effets.sequence_intro_caverne(ref_thread_events=self)
+                self.effets.sequence_intro_caverne(self, dmx_frame, priority_dmx_frame, dmx_streamer)
 
 
         # except exc_info():

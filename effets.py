@@ -34,7 +34,7 @@ class Effets():
 
 
 
-    def sequence(self, ref_thread_events):
+    def sequence(self, ref_thread_events, dmx_frame, priority_dmx_frame, dmx_streamer):
         """
             la séquence principale des sirènes, chronologiquement par effets-lumière.
 
@@ -123,8 +123,7 @@ class Effets():
         """
 
         STARTING_TIME = 0  # used for debugging
-        
-        dmx_frame, priority_dmx_frame, dmx_streamer = init_dmx(arduino_dmx=self.arduino_dmx, max_dmx_channels=30)
+
         blackout(dmx_frame)  # semble ne pas fonctionner
 
         parleds = []
@@ -253,12 +252,12 @@ class Effets():
         print ("SEQUENCE: DMX TERMINÉ")
 
         sleep(2)
-        dmx_streamer.kill()
+        # dmx_streamer.kill()
 
         print('SEQUENCE: fin séquence sirènes')
 
 
-    def battement_de_coeur(self, ref_thread_events, level):
+    def battement_de_coeur(self, ref_thread_events, dmx_frame, priority_dmx_frame, dmx_streamer, level):
         """
             battement de coeur lorsque des visiteurs sont entrés.
             - level 1 lorsqu'ils sont loins
@@ -266,8 +265,6 @@ class Effets():
 
         """
         pause_between_heartbeat = 1  # in seconds
-
-        dmx_frame, priority_dmx_frame, dmx_streamer = init_dmx(arduino_dmx=self.arduino_dmx, max_dmx_channels=30)
         
         while not(ref_thread_events.thread_lotus.must_start_sequence):
             g_bandeau = gevent.spawn_later(
@@ -286,20 +283,18 @@ class Effets():
                 sleep(.00001)
                 
 
-        dmx_streamer.kill()
+        # dmx_streamer.kill()
 
             
 
 
-    def sequence_intro_caverne(self, ref_thread_events):
-
-        dmx_frame, priority_dmx_frame, dmx_streamer = init_dmx(arduino_dmx=self.arduino_dmx, max_dmx_channels=30)
-
+    def sequence_intro_caverne(self, ref_thread_events, dmx_frame, priority_dmx_frame, dmx_streamer):#, dmx_frame, priority_dmx_frame):
 
         # g_parled_1 = gevent.spawn(constants, dmx_frame, PARLED_1.rgb, bleu_turquoise)
         # g_parled_2 = gevent.spawn(constants, dmx_frame, PARLED_2.rgb, bleu_turquoise)
         # g_parled_3 = gevent.spawn(constants, dmx_frame, PARLED_3.rgb, bleu_turquoise)
         # g_parled_4 = gevent.spawn(constants, dmx_frame, PARLED_4.rgb, bleu_turquoise)
+
 
 
         while not(ref_thread_events.thread_ultrasonics.visitors_detected):
@@ -319,7 +314,7 @@ class Effets():
             print exc_info()[-1].tb_lineno
             pass
 
-        dmx_streamer.kill()
+        # dmx_streamer.kill()
 
 
         
