@@ -207,7 +207,9 @@ def strobe(dmx_frame, channels, duration, lower_value, upper_value, freq):
 def constants(dmx_frame, channels, values):
     if isinstance(values, int):
         # then our user, just pass a single value for all channels
-        values = values*len(channels)    
+        values = values*len(channels)
+    print channels
+    print values
     for idx, channel in enumerate(channels):
         dmx_frame[channel] = values[idx]
     gevent.sleep(1)

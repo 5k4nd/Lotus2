@@ -225,7 +225,7 @@ class Thread_Events(Thread):
             sleep(.01)
 
             ## BATTEMENT
-            if self.thread_ultrasonics.visitors_detected or self.state['battement'] or 1:
+            if self.thread_ultrasonics.visitors_detected or self.state['battement']:
                 print "MAIN: start battement (first)"
                 level = 1  # défini selon la distance des visiteurs => FIXME
                 start_battement(self.player, self.media_player, level)
