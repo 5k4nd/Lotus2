@@ -27,7 +27,7 @@ from vlc import *
 from time import sleep
 
 
-def fade_volume(start, end):
+def fade_volume(player, start, end):
     if start<end:
         pas =1
     else:
@@ -52,26 +52,33 @@ def audio_init(medias):
     return player, media_player
 
 
+def audio_player_mute(player):
+    for i in range(player.audio_get_volume(), 0, -1):
+            sleep(.001)
+            player.audio_set_volume(i)
+
+
+
 def start_intro_first_time(player, media_player):
     """
         au lancement de l'appli, lors de la première boucle.
     """
-    player.audio_set_volume(30)
+    player.audio_set_volume(80)  # attention, changer aussi le volume dans start_intro_loop()
     media_player.play()
 
     # attention, doit être appelée après le play(), wouais c'est bizarre :/
     media_player.set_playback_mode(PlaybackMode.repeat)
 
 
-def start_battement(player, media_player):
+def start_battement(player, media_player, level):
     # attention, on ne doit plus boucler pour passer au battement
     media_player.set_playback_mode(PlaybackMode.default)
 
     # on baisse le volume
     
-    fade_volume(30, 0)
+    fade_volume(player, 80, 0)
     media_player.next()
-    fade_volume(0, 150)
+    fade_volume(player, 0, 100)
 
     # on boucle à nouveau, sur le battement
     media_player.set_playback_mode(PlaybackMode.repeat)
@@ -81,9 +88,9 @@ def start_sequence(player, media_player):
     # pour reboucler sur l'intro à la fin de la séquence
     media_player.set_playback_mode(PlaybackMode.default)
 
-    fade_volume(150, 0)
+    fade_volume(player, 100, 0)
     media_player.next()
-    fade_volume(0, 50)
+    fade_volume(player, 0, 60)
     print("AUDIO: fin sequence")
 
 
@@ -94,9 +101,9 @@ def start_intro_loop(player, media_player):
     """
     ## on loope, pour repartir vers l'INTRO
     media_player.set_playback_mode(PlaybackMode.loop)
-    fade_volume(50, 0)
+    fade_volume(player, 60, 0)
     media_player.next()
-    fade_volume(0, 30)
+    fade_volume(player, 0, 50)
 
 
 

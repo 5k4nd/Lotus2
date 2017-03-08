@@ -48,20 +48,25 @@ class RGB():
         self.rgb = [self.r, self.g, self.b]
 
 
+# récapitule les adresses actuellement utilisées. utile pour la maintenance !
+equipment_adresses = [1, 6, 11, 16, 21, 24]
+equipment_adresse_max = max(equipment_adresses)
 
-PARLED_1 = PARLED(address=1)
+PARLED_1 = PARLED(address=equipment_adresses[0])
 
-PARLED_2 = PARLED(address=6)
+PARLED_2 = PARLED(address=equipment_adresses[1])
 
-PARLED_3 = PARLED(address=11)
+PARLED_3 = PARLED(address=equipment_adresses[2])
 
-PARLED_4 = PARLED(address=16)
+PARLED_4 = PARLED(address=equipment_adresses[3])
 
 PARLED_ALL = PARLED(None)
 
-BANDEAU_LED = RGB(address=21)
+BANDEAU_LED = RGB(address=equipment_adresses[4])
 
-PC_1000 = 24
+PC_1000 = equipment_adresses[5]
+
+
 
 if __name__ == '__main__':
-    print(PARLED_ALL.rgb)
+    print(adresse_max)

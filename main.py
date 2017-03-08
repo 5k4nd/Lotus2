@@ -93,7 +93,7 @@ class Thread_Lotus(Thread):
                 delta = 400
                 # note : baisser delta pour plus de réactivité, l'augmenter si le lotus se déclenche tout seul ! :-)
                 if (self.data['capacitor_value'] > (self.data['capacitor_ground'] + delta)):
-                    self.must_start_sequence_tampon = 1000
+                    self.must_start_sequence_tampon = 100
                     self.must_start_sequence = True
                     print("MUST START SEQUENCE à %s" % self.data['capacitor_value'])
 
@@ -104,9 +104,10 @@ class Thread_Lotus(Thread):
                 else:
                     if self.must_start_sequence_tampon>0:
                         self.must_start_sequence_tampon -= 1
-                    elif self.must_start_sequence_tampon==0:
-                        self.must_start_sequence = False
-                        # print "MUST START SEQUENCE is FALSE"
+                    elif self.must_start_sequence:
+                        if self.must_start_sequence_tampon==0:
+                            self.must_start_sequence = False
+                            print "MUST START SEQUENCE is FALSE"
 
 
 
@@ -193,7 +194,6 @@ class Thread_Events(Thread):
         # par exemple si le lighteux te fait finir la séquence alors que la musique est pas finie (sic).
         # voir la méthode audio_battement() pour plus de détails
         self.state = {
-            'intro': True,
             'battement': False,
             'sequence': False
         }
@@ -203,14 +203,15 @@ class Thread_Events(Thread):
         ## pour l'audio
         self.medias = [
             os.path.expanduser("data/audio/intro/Those_Were_Good_Times.mp3"),
-            os.path.expanduser("data/audio/intro/lotus_battement.wav"),
+            os.path.expanduser("data/audio/intro/heartbeat.mp3"),
             os.path.expanduser("data/audio/sequences/2_sirenes_170102.wav"),
         ]
+        self.player, self.media_player = audio_init(self.medias)
 
 
     def run(self):
         """
-            ATTENTION cette boucle contient des opérations bloquantes
+            ATTENTION cette boucle contient des opérations bloquantes (les effets)
             DONC attention ne pas y placer d'opérations périodiques !
 
             Elle manipule également les fichiers audio, qu'elle démarre avant
@@ -223,40 +224,46 @@ class Thread_Events(Thread):
         
 
         """
+        # try:
+
+        start_intro_first_time(self.player, self.media_player)
+        #effet.intro
         while 1:
             sleep(.01)
 
-            try:
-                ## BATTEMENT
-                if self.thread_ultrasonics.visitors_detected or self.state['battement'] or 1:
-                    self.state['battement'] = True
-                    self.state['intro'] = False
-                    print "MAIN: start battement"
-                    audio_battement(level=level, ref_thread_events=ref_thread_events)
-                    # self.effets.battement_de_coeur(ref_thread_events=self)
-                    # self.effets.sequence_intro_caverne(ref_thread_events=self)
-
-                
-                    ## SEQUENCE
-                    if self.thread_lotus.must_start_sequence:
-                        self.state['battement'] = False
-                        self.state['sequence'] = True
-                        print("MAIN: start sequence")
-                        # self.effets.sequence(ref_thread_events=self)
-                        print("MAIN: on reset le visitors_detected à FALSE")
-                        self.thread_ultrasonics.visitors_detected = False
-
-                else:
-                    ## INTRO
-                    print("MAIN: start intro")
-                    audio_intro(ref_thread_events=ref_thread_events)
-                    # self.effets.sequence_intro_caverne(ref_thread_events=self)
+            ## BATTEMENT
+            if self.thread_ultrasonics.visitors_detected or self.state['battement'] or 1:
+                print "MAIN: start battement (first)"
+                level = 1  # défini selon la distance des visiteurs => FIXME
+                start_battement(self.player, self.media_player, level)
+                self.state['battement'] = True
+                self.effets.battement_de_coeur(ref_thread_events=self, level=level)
 
 
-            except exc_info():
-                print exc_info()
-                print exc_info()[-1].tb_lineno
-                pass
+                ## SEQUENCE
+                if self.thread_lotus.must_start_sequence:
+                    print("MAIN: start sequence")
+                    self.state['battement'] = False
+                    self.state['sequence'] = True
+                    start_sequence(self.player, self.media_player)
+                    self.effets.sequence(ref_thread_events=self)
+                    
+                    # on reset le tout avant de revenir à l'intro
+                    self.thread_ultrasonics.visitors_detected = False
+                    start_intro_loop(self.player, self.media_player)
+                    self.state['sequence'] = False
+
+
+            ## INTRO
+            else:
+                print("MAIN: start intro")
+                self.effets.sequence_intro_caverne(ref_thread_events=self)
+
+
+        # except exc_info():
+            # print exc_info()
+            # print exc_info()[-1].tb_lineno
+            # pass
 
 
 
@@ -269,8 +276,8 @@ if __name__ == '__main__':
         # sleep(1)
 
         # on ouvre le port d'écoute de l'arduino MEGA qui écoute les 2 ultrasons de détection de passage
-        # arduino_ultrasonics = serial.Serial(MEGA_ULTRASONICS, 115200)
-        arduino_ultrasonics = 'foobar'
+        arduino_ultrasonics = serial.Serial(MEGA_ULTRASONICS, 115200)
+        # arduino_ultrasonics = 'foobar'
 
         # on démarre le thread associé
         thread_ultrasonics = Thread_Ultrasonics(arduino_ultrasonics)
@@ -278,8 +285,8 @@ if __name__ == '__main__':
 
 
         # on ouvre le port d'écoute de l'arduino MEGA qui écoute le lotus
-        # arduino_lotus = serial.Serial(MEGA_CAPACITOR, 115200)
-        arduino_lotus = 'foobar'
+        arduino_lotus = serial.Serial(MEGA_CAPACITOR, 115200)
+        # arduino_lotus = 'foobar'
 
         # on démarre le thread associé
         thread_lotus = Thread_Lotus(arduino_lotus)
@@ -291,8 +298,8 @@ if __name__ == '__main__':
         sleep(1)
 
         # on ouvre le port d'écoute de l'arduino UNO-DMX
-        # arduino_dmx = serial.Serial(UNO_DMX, 115200)
-        arduino_dmx = 'foobar'
+        arduino_dmx = serial.Serial(UNO_DMX, 115200)
+        # arduino_dmx = 'foobar'
 
         # on démarre le thread associé
         try:
@@ -315,6 +322,7 @@ if __name__ == '__main__':
         pass
 
 
+    audio_player_mute(thread_events.player)
 
     # on arrête "proprement" les threads
     thread_events._Thread__stop()

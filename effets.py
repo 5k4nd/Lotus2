@@ -20,6 +20,10 @@ class Effets():
 
         un effet comprend une suite d'effets lumières via la classe DMX (importée depuis dmx_functions).
 
+        remarque : les blackout se font en début de séquence, pour être sûr qu'ils soient pris en compte
+        (le problème de les mettre en fin de séquence, c'est que le dmx_streamer risque d'être killé avant
+        que la trame blackout ne soit partie).
+
     """
 
     def __init__(self, arduino_dmx, arduino_ultrasonics, arduino_lotus):
@@ -121,7 +125,7 @@ class Effets():
         STARTING_TIME = 0  # used for debugging
         
         dmx_frame, priority_dmx_frame, dmx_streamer = init_dmx(arduino_dmx=self.arduino_dmx, max_dmx_channels=30)
-        blackout(dmx_frame)
+        blackout(dmx_frame)  # semble ne pas fonctionner
 
         parleds = []
 
@@ -242,7 +246,7 @@ class Effets():
         parleds.append(gevent.spawn_later(99, gevent.sleep(2)))
         
         while (len(gevent.joinall(parleds, timeout=0)) != len(parleds)) :
-            foo = 42
+            sleep(.00001)
             # pc_1000 = gevent.spawn( fade_up_down, PC_1000, 1, 0, 150, 6, 0)
             # gevent.joinall([pc_1000])
 
@@ -251,89 +255,37 @@ class Effets():
         sleep(2)
         dmx_streamer.kill()
 
-        audio_stop("sequence")
-
-        # print time()-tic
         print('SEQUENCE: fin séquence sirènes')
 
 
-    def battement_de_coeur(self, ref_thread_events):
+    def battement_de_coeur(self, ref_thread_events, level):
         """
             battement de coeur lorsque des visiteurs sont entrés.
             - level 1 lorsqu'ils sont loins
             - level 2 lorsqu'ils sont proches
 
         """
-        print "EFFET: start battement"
+        pause_between_heartbeat = 1  # in seconds
 
-        try:
-
-            level = 2
-
-
-            return 0
-            dmx_frame, priority_dmx_frame, dmx_streamer = init_dmx(arduino_dmx=self.arduino_dmx, max_dmx_channels=30)
-            
-            g_bandeau = []
-            while not(ref_thread_events.thread_lotus.must_start_sequence):
-                    g_bandeau.append(gevent.spawn_later(
-                        0,
-                        intro_battement, dmx_frame, BANDEAU_LED.r,
-                        ref_must_start_sequence=ref_thread_events.thread_lotus.must_start_sequence,
-                        level=level
-                    ))
-                    # pour interrompre la séquence d'intro immédiatement lorsqu'un visiteur est détécté. à priori ce n'est pas ce que l'on veut !
-                    while (len(gevent.joinall(g_bandeau)) != len(g_bandeau)):
-                        print "coucou"
-                        print "POURQUOI ON PASSE PAS ICI ?"
-                        print "coucou"
-                        if ref_thread_events.thread_lotus.must_start_sequence:
-                            break
-                    # gevent.joinall([g_bandeau])
-
-
-        except exc_info():
-            print exc_info()
-            print exc_info()[-1].tb_lineno
-            pass
-
+        dmx_frame, priority_dmx_frame, dmx_streamer = init_dmx(arduino_dmx=self.arduino_dmx, max_dmx_channels=30)
         
+        while not(ref_thread_events.thread_lotus.must_start_sequence):
+            g_bandeau = gevent.spawn_later(
+                0,
+                intro_battement, dmx_frame, BANDEAU_LED.r,
+                ref_must_start_sequence=ref_thread_events.thread_lotus.must_start_sequence,
+                level=level
+            )
+            while(len(gevent.joinall([g_bandeau], timeout=0)) != len([g_bandeau])):
+                if ref_thread_events.thread_lotus.must_start_sequence:
+                    break
+            
+            # équivalent de la fonction time.sleep() mais interruptible en cas de lotus touché
+            tic = time()
+            while (time() - tic < pause_between_heartbeat) and not(ref_thread_events.thread_lotus.must_start_sequence):
+                sleep(.00001)
+                
 
-
-
-        # gevent.joinall([g_bandeau])
-            # g_bandeau = gevent.spawn(intro_lotus_oscillations, dmx_frame, BANDEAU_LED.r)
-        # gevent.spawn_later(0, intro_battement, dmx_frame, BANDEAU_LED.r)
-
-
-        # on attend la fin du battement MAIS on INTERROMPT le battement si le lotus est touché ! 
-        # while (len(gevent.joinall(parleds, timeout=0)) != len(parleds)):
-        #     sleep(.01)
-        #     if (self.arduino_lotus.must_start_sequence == True):
-        #         break
-
-
-        # if level==1:
-        #     tic = time()
-        #     while (time() - tic < 1.3) and (self.arduino_lotus.must_start_sequence == False):
-        #         sleep(.1)
-
-        # elif level==2:
-        #     tic = time()
-        #     while (time() - tic < .3) and (self.arduino_lotus.must_start_sequence == False):
-        #         sleep(.1)
-
-
-
-        sleep(.1)
-
-        # g_par_1000.kill()
-
-        # g_bandeau_g.kill()
-        # g_bandeau_b.kill()
-        # dmx.valeur([2, 7, PARLED_3.r, PARLED_4.r, PAR_1000], [0,0,0,0,0])
-        # dmx.blackout([2, 7, PARLED_3.r, PARLED_4.r, PAR_1000, BANDEAU_LED])
-        # print("\nblackout")
         dmx_streamer.kill()
 
             
@@ -351,22 +303,22 @@ class Effets():
 
 
         while not(ref_thread_events.thread_ultrasonics.visitors_detected):
-        # while not(ref_thread_events.thread_lotus.must_start_sequence):
-            # print type(ref_thread_events.thread_lotus.must_start_sequence), ref_thread_events.thread_lotus.must_start_sequence
             g_bandeau = gevent.spawn(intro_lotus_oscillations, dmx_frame, BANDEAU_LED.r)
             gevent.joinall([g_bandeau])
-            # # pour interrompre la séquence d'intro immédiatement lorsqu'un visiteur est détécté. à priori ce n'est pas ce que l'on veut !
-            # while (len(gevent.joinall(g_bandeau)) != len(g_bandeau)):
-            #     if ref_thread_events.thread_ultrasonics.visitors_detected:
-            #         break
 
-        sleep(1)
 
-        g_bandeau.kill()
+
         # g_parled_1.kill()
         # g_parled_2.kill()
         # g_parled_3.kill()
         # g_parled_4.kill()
+        try:
+            g_bandeau.kill()
+        except exc_info():
+            print exc_info()
+            print exc_info()[-1].tb_lineno
+            pass
+
         dmx_streamer.kill()
 
 
