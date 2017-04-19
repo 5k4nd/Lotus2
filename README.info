@@ -13,8 +13,8 @@ Le Lotus
 #       #
 
 Programme réalisé dans le cadre d'un projet UTCéen en partenariat avec le Théâtre Impérial de Compiègne.
-Codé en Python 2 et en Arduino, l'application finale tourne simultanément sur un Raspberry Pi et plusieurs cartes Arduino.
-Le Pi traite des signaux en provenance de l'arduino, et y associe des effets lumineux (via le protocole DMX) et sonores (protocole RCA).
+Codé en Python 2 et en C, l'application finale tourne simultanément sur un Raspberry Pi et plusieurs cartes Arduino.
+Le Pi traite des signaux en provenance de l'arduino, et y associe des effets lumineux (via le protocole DMX) et sonores (protocole optique pour gérer le multicanal).
 
 
 
@@ -40,7 +40,7 @@ Lancer l'application avec
 
 n'oubliez pas :
 
-  * de lancer ce programme en root si vous êtes sous Linux
+  * de lancer ce programme en root si vous êtes sous Linux, et via le virtualenv
   * de configurer les ports et bauds des arduinos dans les premières lignes du fichier main.py
 
 
@@ -58,4 +58,4 @@ pour sortir du virtualenv :
   deactivate
 
 Cette application nécessite d'avoir vlc (ou cvlc, i.e. sans interface graphique) installé pour manipuler et jouer les fichiers audio.
-
+Pas d'autre dépendance lourde, hormis quelques packages python.
