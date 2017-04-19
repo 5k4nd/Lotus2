@@ -6,7 +6,7 @@ Seconde version du Lotus, code d'une installation interactive développée en pa
 (première version ici : https://github.com/littleDad/Lotus)
 
 Cette version se sépare de l'interface ncurses et d'une conception rigoureuse d'un point de vue
-orienté objet et ontologies, mais désastreux côté performance. Place à la programmation séquentielle !
+orienté objet et ontologies, mais désastreuse côté performance. Place à la programmation séquentielle !
 
 #       #
 Le Lotus
